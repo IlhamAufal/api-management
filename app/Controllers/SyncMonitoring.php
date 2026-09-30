@@ -39,7 +39,7 @@ class SyncMonitoring extends BaseController
 
         return view('pages/sync_monitoring/index', [
             'title'          => 'Dashboard Monitoring | MD-Bridge',
-            'page'           => 'monitoring',
+            'page'           => 'dashboard',
             'tasks'          => $tasks,
             'metrics'        => $this->buildMetrics($tasks),
             'pipelineStatus' => $this->getPipelineStatus($tasks),

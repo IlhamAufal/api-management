@@ -22,17 +22,20 @@
       <ul class="flex flex-col gap-2">
         <?php
         $navigation = [
-            ['key' => 'monitoring', 'label' => 'Dashboard Monitoring', 'href' => base_url('/'), 'icon' => 'grid'],
+            ['key' => 'dashboard', 'label' => 'Dashboard Monitoring', 'href' => base_url('/'), 'icon' => 'grid'],
+            ['key' => 'monitoring', 'label' => 'Monitoring', 'href' => base_url('monitoring'), 'icon' => 'database'],
             ['key' => 'tasks', 'label' => 'API Task Registry', 'href' => base_url('tasks'), 'icon' => 'list'],
             ['key' => 'logs', 'label' => 'Execution Logs', 'href' => base_url('logs'), 'icon' => 'activity'],
         ];
         foreach ($navigation as $item):
-            $active = ($page ?? 'monitoring') === $item['key'];
+            $active = ($page ?? 'dashboard') === $item['key'];
         ?>
           <li>
             <a href="<?= esc($item['href']) ?>" class="menu-item group <?= $active ? 'menu-item-active' : 'menu-item-inactive' ?>">
               <?php if ($item['icon'] === 'grid'): ?>
                 <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4.75A.75.75 0 0 1 4.75 4h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5A.75.75 0 0 1 4 10.25v-5.5ZM13 4.75a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-5.5ZM4 13.75a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-5.5ZM13 13.75a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-5.5Z" fill="currentColor"/></svg>
+              <?php elseif ($item['icon'] === 'database'): ?>
+                <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C7.58 3 4 4.34 4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6c0-1.66-3.58-3-8-3Zm0 1.5c3.93 0 6.5 1.13 6.5 1.5S15.93 7.5 12 7.5 5.5 6.37 5.5 6 8.07 4.5 12 4.5Zm0 15c-3.93 0-6.5-1.13-6.5-1.5v-2.09C7 16.61 9.36 17 12 17s5-.39 6.5-1.09V18c0 .37-2.57 1.5-6.5 1.5Zm0-4c-3.93 0-6.5-1.13-6.5-1.5v-2.09C7 12.61 9.36 13 12 13s5-.39 6.5-1.09V14c0 .37-2.57 1.5-6.5 1.5Zm0-4C8.07 11.5 5.5 10.37 5.5 10V7.91C7 8.61 9.36 9 12 9s5-.39 6.5-1.09V10c0 .37-2.57 1.5-6.5 1.5Z" fill="currentColor"/></svg>
               <?php elseif ($item['icon'] === 'list'): ?>
                 <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 5.75A.75.75 0 0 1 5.75 5h12.5a.75.75 0 0 1 0 1.5H5.75A.75.75 0 0 1 5 5.75ZM5 11.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H5.75a.75.75 0 0 1-.75-.75ZM5 17.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H5.75a.75.75 0 0 1-.75-.75Z" fill="currentColor"/></svg>
               <?php else: ?>

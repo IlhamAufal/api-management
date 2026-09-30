@@ -33,6 +33,8 @@ $routes->setAutoRoute(true);
 // route since we don't have to scan directories.
 $routes->get('/', 'SyncMonitoring::index');
 $routes->get('dashboard', 'SyncMonitoring::index');
+$routes->get('monitoring', 'Monitoring::index');
+$routes->get('monitoring/(:segment)', 'Monitoring::show/$1');
 $routes->get('tasks', 'TaskRegistry::index');
 $routes->get('logs', 'SyncLogs::index');
 $routes->post('api/sync/run/(:segment)', 'Api\\SyncController::run/$1');
