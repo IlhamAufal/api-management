@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title><?= $title ?? 'eCommerce Dashboard | TailAdmin - Tailwind CSS Admin Dashboard Template' ?></title>
+  <title><?= $title ?? 'MD-Bridge Integration Monitor' ?></title>
   <link rel="icon" href="<?= base_url('favicon.ico') ?>">
   <link href="<?= base_url('assets/css/style.css') ?>" rel="stylesheet">
 </head>
 <body
-    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-data="{ page: '<?= esc($page ?? 'monitoring', 'js') ?>', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
     x-init="
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
          $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
@@ -30,6 +30,7 @@
     </div>
   </div>
 
+  <?= $this->include('components/toast') ?>
   <?= $this->include('partials/footer_scripts') ?>
 </body>
 </html>

@@ -31,8 +31,11 @@ $routes->setAutoRoute(true);
 
 // We get a performance increase by specifying the default
 // route since we don't have to scan directories.
-$routes->get('/', 'Dashboard::index');
-$routes->get('dashboard', 'Dashboard::index');
+$routes->get('/', 'SyncMonitoring::index');
+$routes->get('dashboard', 'SyncMonitoring::index');
+$routes->get('tasks', 'TaskRegistry::index');
+$routes->get('logs', 'SyncLogs::index');
+$routes->post('api/sync/run/(:segment)', 'Api\\SyncController::run/$1');
 
 /*
  * --------------------------------------------------------------------
