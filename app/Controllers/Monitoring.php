@@ -83,6 +83,182 @@ class Monitoring extends BaseController
         ]);
     }
 
+    public function showTable($appCode, $tableCode)
+    {
+        $appModel = new MonitoringAppModel();
+        $logModel = new SysSyncLogModel();
+        $taskModel = new ApiSyncTaskModel();
+        $app = $appModel->findActiveByCode($appCode);
+
+        if ($app === null) {
+            throw PageNotFoundException::forPageNotFound('Aplikasi monitoring tidak ditemukan.');
+        }
+
+        $tables = $appModel->getActiveTables((int) $app['id']);
+        $table = null;
+
+        foreach ($tables as $row) {
+            if (($row['table_code'] ?? null) === $tableCode) {
+                $table = $row;
+                break;
+            }
+        }
+
+        if ($table === null) {
+            throw PageNotFoundException::forPageNotFound('Tabel monitoring tidak ditemukan pada aplikasi ini.');
+        }
+
+        $taskCode = $table['sync_task_code'] ?? null;
+        $task = null;
+
+        if ($taskCode) {
+            $table['last_cron'] = $logModel->getLatestCronByTaskCode($taskCode);
+            $table['operational_status'] = $table['last_cron']['status'] ?? 'UNKNOWN';
+            $task = $taskModel->where('task_code', $taskCode)->first();
+            $table['cron_expression'] = $task['cron_expression'] ?? null;
+        } else {
+            $table['last_cron'] = null;
+            $table['operational_status'] = 'NOT_CONNECTED';
+            $table['cron_expression'] = null;
+        }
+
+        $history = $taskCode ? $logModel->getCronHistoryByTaskCodes([$taskCode], 50) : [];
+        $lastCron = $table['last_cron'];
+        $totals = $this->summarizeTableHistory($history);
+        $workflow = $this->buildTableWorkflow($app, $table, $task);
+
+        return view('pages/monitoring/table', [
+            'title'    => $table['table_name'] . ' | ' . $app['app_name'] . ' | Monitoring MD-Bridge',
+            'page'     => 'monitoring',
+            'app'      => $app,
+            'table'    => $table,
+            'task'     => $task,
+            'history'  => $history,
+            'totals'   => $totals,
+            'lastCron' => $lastCron,
+            'workflow' => $workflow,
+        ]);
+    }
+
+    /**
+     * Aggregate a single table's cron history into compact summary metrics.
+     */
+    private function summarizeTableHistory(array $history): array
+    {
+        $success = 0;
+        $failed = 0;
+        $rows = 0;
+        $durations = [];
+        $lastFailure = null;
+
+        foreach ($history as $log) {
+            $success += $log['status'] === 'SUCCESS' ? 1 : 0;
+            $failed += $log['status'] === 'FAILED' ? 1 : 0;
+            $rows += (int) $log['records_written'];
+            $durations[] = (float) $log['duration_sec'];
+
+            if ($log['status'] === 'FAILED' && $lastFailure === null) {
+                $lastFailure = $log;
+                break;
+            }
+        }
+
+        return [
+            'success_count' => $success,
+            'failed_count'  => $failed,
+            'rows_written'  => $rows,
+            'average_duration' => count($durations) > 0 ? array_sum($durations) / count($durations) : 0,
+            'last_failure'  => $lastFailure,
+        ];
+    }
+
+    /**
+     * Focused workflow graph for one table:
+     * SAP source -> sync task (cron) -> the table -> destination app.
+     */
+    private function buildTableWorkflow(array $app, array $table, ?array $task): array
+    {
+        $nodes = [];
+        $edges = [];
+        $status = $table['operational_status'] ?? 'UNKNOWN';
+        $lastCron = $table['last_cron'];
+        $lastMeta = [];
+
+        if ($lastCron) {
+            $lastMeta[] = [
+                'label' => 'Read / Written',
+                'value' => number_format((int) ($lastCron['records_read'] ?? 0)) . ' / ' . number_format((int) ($lastCron['records_written'] ?? 0)),
+            ];
+            $timestamp = $lastCron['finished_at'] ?? $lastCron['executed_at'] ?? null;
+            $lastMeta[] = [
+                'label' => 'Cron terakhir',
+                'value' => $timestamp ? date('d M, H:i', strtotime($timestamp)) : '—',
+            ];
+        }
+
+        if (!empty($table['cron_expression'])) {
+            $lastMeta[] = ['label' => 'Schedule', 'value' => $table['cron_expression']];
+        }
+
+        $nodes[] = [
+            'key'      => 'source',
+            'column'   => 0,
+            'variant'  => 'source',
+            'icon'     => 'cloud',
+            'title'    => 'SAP S/4HANA Cloud',
+            'subtitle' => ($task['source_endpoint'] ?? '') !== '' ? 'OData API source' : 'Data source',
+            'status'   => 'SOURCE',
+            'meta'     => [],
+        ];
+
+        $nodes[] = [
+            'key'      => 'task',
+            'column'   => 1,
+            'variant'  => 'process',
+            'icon'     => 'worker',
+            'title'    => $task['task_name'] ?? 'Belum terhubung',
+            'subtitle' => $table['sync_task_code'] ?: 'Tidak ada task',
+            'status'   => $status,
+            'meta'     => $lastMeta,
+        ];
+
+        $nodes[] = [
+            'key'      => 'table',
+            'column'   => 2,
+            'variant'  => 'table',
+            'icon'     => 'table',
+            'title'    => $table['table_name'],
+            'subtitle' => $table['table_code'],
+            'status'   => $status,
+            'meta'     => [],
+        ];
+
+        $nodes[] = [
+            'key'      => 'sink',
+            'column'   => 3,
+            'variant'  => 'sink',
+            'icon'     => 'database',
+            'title'    => $app['app_name'],
+            'subtitle' => $app['database_name'] ?: 'Target database',
+            'status'   => $status,
+            'meta'     => [],
+        ];
+
+        $edges = [
+            ['from' => 'source', 'to' => 'task'],
+            ['from' => 'task', 'to' => 'table'],
+            ['from' => 'table', 'to' => 'sink'],
+        ];
+        if (!$table['sync_task_code']) {
+            $edges = [
+                ['from' => 'source', 'to' => 'table'],
+                ['from' => 'table', 'to' => 'sink'],
+            ];
+        }
+
+        return ['nodes' => $nodes, 'edges' => $edges];
+    }
+
     /**
      * Build a read-only workflow graph (nodes + connections) used by the
      * Drawflow visualization on the monitoring detail page. This is purely

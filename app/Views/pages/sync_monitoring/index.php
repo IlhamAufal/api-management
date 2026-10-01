@@ -12,9 +12,14 @@ $formatDate = static function ($value) {
 };
 ?>
 <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+  <?= view('components/breadcrumb', ['items' => [
+      ['label' => 'Home', 'href' => base_url('/')],
+      ['label' => 'Dashboard Monitoring'],
+  ]]) ?>
+
   <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-brand-500">MD-Bridge</p>
+      <p class="text-sm font-semibold tracking-wide text-brand-500">MD-Bridge</p>
       <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Dashboard Monitoring</h1>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Live overview of SAP master-data synchronization tasks.</p>
     </div>
@@ -29,26 +34,23 @@ $formatDate = static function ($value) {
     <?php endforeach; ?>
   </section>
 
-  <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-    <div class="flex flex-col gap-2 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
-      <div>
-        <h2 class="font-semibold text-gray-800 dark:text-white/90">Entity Synchronization</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Latest execution details for each registered task.</p>
-      </div>
-      <span class="text-xs text-gray-400">Manual sync logs are stored with trigger type MANUAL_UI.</span>
-    </div>
+  <div class="mt-8">
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Entity Synchronization</h2>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Latest execution details for each registered task. Manual sync logs are stored with trigger type Manual UI.</p>
+  </div>
 
+  <section class="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <div class="overflow-x-auto">
       <table class="min-w-[1280px] w-full text-left">
-        <thead class="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-400">
+        <thead class="bg-brand-500 text-white">
           <tr>
-            <th class="px-5 py-3 font-medium">Entity Info</th>
-            <th class="px-5 py-3 font-medium">Total Rows</th>
-            <th class="px-5 py-3 font-medium">Last Synced At</th>
-            <th class="px-5 py-3 font-medium">Duration</th>
-            <th class="px-5 py-3 font-medium">Latest Status</th>
-            <th class="px-5 py-3 font-medium">Cron Schedule</th>
-            <th class="px-5 py-3 font-medium">Actions</th>
+            <th class="px-5 py-3 text-sm font-semibold">Entity Info</th>
+            <th class="px-5 py-3 text-sm font-semibold">Total Rows</th>
+            <th class="px-5 py-3 text-sm font-semibold">Last Synced At</th>
+            <th class="px-5 py-3 text-sm font-semibold">Duration</th>
+            <th class="px-5 py-3 text-sm font-semibold">Latest Status</th>
+            <th class="px-5 py-3 text-sm font-semibold">Cron Schedule</th>
+            <th class="px-5 py-3 text-sm font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">

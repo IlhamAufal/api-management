@@ -38,8 +38,15 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'Dashboard::index');
     $routes->get('dashboard', 'Dashboard::index');
     $routes->get('monitoring', 'Monitoring::index');
+    $routes->get('monitoring/(:segment)/(:segment)', 'Monitoring::showTable/$1/$2');
     $routes->get('monitoring/(:segment)', 'Monitoring::show/$1');
     $routes->get('tasks', 'TaskRegistry::index');
+    $routes->get('tasks/new', 'TaskRegistry::create');
+    $routes->post('tasks', 'TaskRegistry::store');
+    $routes->get('tasks/edit/(:num)', 'TaskRegistry::edit/$1');
+    $routes->post('tasks/update/(:num)', 'TaskRegistry::update/$1');
+    $routes->post('tasks/delete/(:num)', 'TaskRegistry::delete/$1');
+    $routes->post('tasks/toggle/(:num)', 'TaskRegistry::toggle/$1');
     $routes->get('logs', 'SyncLogs::index');
     $routes->post('logout', 'Auth::logout');
     $routes->post('api/sync/run/(:segment)', 'Api\\SyncController::run/$1');

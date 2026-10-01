@@ -14,8 +14,8 @@
 
   <div class="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
     <nav>
-      <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
-        <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">MD-BRIDGE</span>
+      <h3 class="mb-4 text-xs leading-[20px] text-gray-400">
+        <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">Md-Bridge</span>
         <span class="hidden text-center menu-group-icon" :class="sidebarToggle ? 'lg:block' : ''">•••</span>
       </h3>
 

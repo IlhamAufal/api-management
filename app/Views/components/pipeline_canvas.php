@@ -12,7 +12,7 @@ $nodes = ['SAP Cloud', 'CI4 Worker', 'AWS RDS', 'MD-Bridge'];
   <div class="mb-6 flex items-center justify-between gap-4">
     <div>
       <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Sync Pipeline</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">SAP master data delivery flow</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">SAP Master Data Delivery Flow</p>
     </div>
     <?= view('components/badge_status', ['status' => $pipelineStatus]) ?>
   </div>

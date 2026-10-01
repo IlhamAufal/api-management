@@ -7,8 +7,8 @@ $statusMeta = static function ($status) {
         'SUCCESS'       => ['label' => 'Healthy', 'class' => 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400', 'dot' => 'bg-success-500'],
         'FAILED'        => ['label' => 'Failed', 'class' => 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400', 'dot' => 'bg-error-500'],
         'RUNNING'       => ['label' => 'Running', 'class' => 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400', 'dot' => 'bg-warning-500 animate-pulse'],
-        'UNKNOWN'       => ['label' => 'No cron data', 'class' => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', 'dot' => 'bg-gray-400'],
-        'NOT_CONNECTED' => ['label' => 'Not connected', 'class' => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', 'dot' => 'bg-gray-400'],
+        'UNKNOWN'       => ['label' => 'No Cron Data', 'class' => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', 'dot' => 'bg-gray-400'],
+        'NOT_CONNECTED' => ['label' => 'Not Connected', 'class' => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300', 'dot' => 'bg-gray-400'],
     ];
     return $map[$status] ?? $map['UNKNOWN'];
 };
@@ -18,9 +18,14 @@ $formatDate = static function ($value) {
 };
 ?>
 <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+  <?= view('components/breadcrumb', ['items' => [
+      ['label' => 'Home', 'href' => base_url('/')],
+      ['label' => 'Monitoring'],
+  ]]) ?>
+
   <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-brand-500">Operational Monitoring</p>
+      <p class="text-sm font-semibold tracking-wide text-brand-500">Operational Monitoring</p>
       <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Monitoring Sinkronisasi</h1>
       <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">Pilih aplikasi untuk membuka detail status tabel dan riwayat cronjob.</p>
     </div>
@@ -51,8 +56,8 @@ $formatDate = static function ($value) {
           <p class="mt-3 flex-1 text-sm leading-6 text-gray-500 dark:text-gray-400"><?= esc($app['description'] ?: 'Aplikasi sumber data untuk monitoring.') ?></p>
           <dl class="mt-5 space-y-3 border-t border-gray-100 pt-4 text-sm dark:border-gray-800">
             <div class="flex items-center justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Database</dt><dd class="font-mono font-medium text-gray-700 dark:text-gray-200"><?= esc($app['database_name'] ?: '—') ?></dd></div>
-            <div class="flex items-center justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Telemetry tabel</dt><dd class="font-semibold text-gray-700 dark:text-gray-200"><?= (int) $app['reported_tables'] ?>/<?= (int) $app['table_count'] ?></dd></div>
-            <div class="flex items-center justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Cron terakhir</dt><dd class="text-xs font-medium text-gray-700 dark:text-gray-200"><?= esc($formatDate($app['last_cron_at'])) ?></dd></div>
+            <div class="flex items-center justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Telemetry Tabel</dt><dd class="font-semibold text-gray-700 dark:text-gray-200"><?= (int) $app['reported_tables'] ?>/<?= (int) $app['table_count'] ?></dd></div>
+            <div class="flex items-center justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Cron Terakhir</dt><dd class="text-xs font-medium text-gray-700 dark:text-gray-200"><?= esc($formatDate($app['last_cron_at'])) ?></dd></div>
           </dl>
           <span class="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition group-hover:bg-brand-600">
             Lihat Status &amp; Riwayat

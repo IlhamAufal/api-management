@@ -15,7 +15,7 @@
     .auth-form-wrap { width: 100%; max-width: 430px; }
     .auth-logo { display: inline-flex; align-items: center; gap: 12px; color: #344054; font-weight: 700; text-decoration: none; }
     .auth-logo img { width: 42px; height: 42px; }
-    .auth-eyebrow { margin: 48px 0 0; color: #465fff; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .auth-eyebrow { margin: 48px 0 0; color: #465fff; font-size: 12px; font-weight: 700; letter-spacing: .14em; }
     .auth-title { margin: 10px 0 0; color: #101828; font-size: clamp(30px, 4vw, 42px); line-height: 1.15; letter-spacing: -.03em; }
     .auth-copy { margin: 14px 0 32px; color: #667085; font-size: 15px; line-height: 1.7; }
     .auth-alert { margin-bottom: 20px; border: 1px solid #fecdca; border-radius: 12px; padding: 12px 14px; background: #fef3f2; color: #b42318; font-size: 13px; line-height: 1.5; }
@@ -57,16 +57,14 @@
           <span>MD-Bridge</span>
         </a>
 
-        <p class="auth-eyebrow">Secure workspace</p>
+        <p class="auth-eyebrow">Secure Workspace</p>
         <h1 id="signin-title" class="auth-title">Sign in to your account</h1>
         <p class="auth-copy">Masukkan email dan password untuk mengakses dashboard integrasi dan monitoring sinkronisasi.</p>
 
         <?php if ($message = session()->getFlashdata('auth_error')): ?>
           <div class="auth-alert" role="alert"><?= esc($message) ?></div>
         <?php endif; ?>
-        <?php if ($message = session()->getFlashdata('auth_success')): ?>
-          <div class="auth-alert auth-alert-success" role="status"><?= esc($message) ?></div>
-        <?php endif; ?>
+
 
         <form method="post" action="<?= base_url('login') ?>" novalidate>
           <?= csrf_field() ?>
@@ -129,6 +127,9 @@
     </aside>
   </main>
 
+  <?= view('components/toast') ?>
+
+  <script defer src="<?= base_url('assets/js/bundle.js') ?>"></script>
   <script>
   (() => {
     const input = document.getElementById('password');

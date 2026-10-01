@@ -83,7 +83,9 @@ class Auth extends BaseController
             $session->remove($key);
         }
         $session->regenerate(true);
-        $session->setFlashdata('auth_success', 'Anda berhasil logout.');
+        $message = 'Anda berhasil logout.';
+        $session->setFlashdata('auth_success', $message);
+        $session->setFlashdata('message', $message);
 
         return redirect()->to(base_url('login'));
     }

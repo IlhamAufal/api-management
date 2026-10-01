@@ -1,17 +1,14 @@
+<?php
+$toastMessage = session()->getFlashdata('message')
+    ?? session()->getFlashdata('auth_success')
+    ?? session()->getFlashdata('success')
+    ?? session()->getFlashdata('auth_error')
+    ?? session()->getFlashdata('error');
+$toastType = (session()->getFlashdata('auth_error') || session()->getFlashdata('error')) ? 'error' : 'success';
+?>
+
 <div
-  x-data="{
-    show: false,
-    type: 'success',
-    message: '',
-    timeout: null,
-    notify(detail) {
-      clearTimeout(this.timeout);
-      this.type = detail.type === 'error' ? 'error' : 'success';
-      this.message = detail.message || '';
-      this.show = true;
-      this.timeout = setTimeout(() => this.show = false, 4000);
-    }
-  }"
+  x-data="toastNotification()"
   x-on:notify.window="notify($event.detail || {})"
   x-show="show"
   x-transition:enter="transition ease-out duration-300"
@@ -36,3 +33,29 @@
     <button type="button" class="text-current opacity-70 hover:opacity-100" @click="show = false" aria-label="Close notification">×</button>
   </div>
 </div>
+
+<script>
+function toastNotification() {
+  return {
+    show: false,
+    type: <?= json_encode($toastType) ?>,
+    message: <?= json_encode((string) ($toastMessage ?? '')) ?>,
+    timeout: null,
+    notify(detail) {
+      clearTimeout(this.timeout);
+      this.type = detail && detail.type === 'error' ? 'error' : 'success';
+      this.message = detail && detail.message ? detail.message : '';
+      this.show = true;
+      this.timeout = setTimeout(() => { this.show = false; }, 4000);
+    },
+    init() {
+      if (this.message && this.message.trim() !== '') {
+        this.$nextTick(() => {
+          this.show = true;
+          this.timeout = setTimeout(() => { this.show = false; }, 4000);
+        });
+      }
+    }
+  };
+}
+</script>
