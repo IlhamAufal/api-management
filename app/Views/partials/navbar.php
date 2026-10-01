@@ -30,6 +30,17 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 0 0-14.9-4M4 13a8 8 0 0 0 14.9 4M5 3v4h4M19 21v-4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Sync All
         </button>
+        <div class="hidden text-right sm:block">
+          <p class="max-w-40 truncate text-xs font-semibold text-gray-700 dark:text-gray-200"><?= esc(session()->get('auth_user_name') ?: 'User') ?></p>
+          <p class="max-w-40 truncate text-[11px] text-gray-400"><?= esc(session()->get('auth_user_email') ?: '') ?></p>
+        </div>
+        <form method="post" action="<?= base_url('logout') ?>">
+          <?= csrf_field() ?>
+          <button type="submit" class="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-600 transition hover:border-error-300 hover:bg-error-50 hover:text-error-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-error-700 dark:hover:bg-error-500/10 dark:hover:text-error-400" title="Logout">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 5H5.75A1.75 1.75 0 0 0 4 6.75v10.5C4 18.22 4.78 19 5.75 19H9M15 8l4 4-4 4M8 12h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="hidden xl:inline">Logout</span>
+          </button>
+        </form>
         <button class="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400" @click.prevent="darkMode = !darkMode" aria-label="Toggle dark mode"><span class="text-lg">◐</span></button>
       </div>
     </div>

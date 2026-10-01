@@ -22,7 +22,7 @@
       <ul class="flex flex-col gap-2">
         <?php
         $navigation = [
-            ['key' => 'dashboard', 'label' => 'Dashboard Monitoring', 'href' => base_url('/'), 'icon' => 'grid'],
+            ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => base_url('/'), 'icon' => 'grid'],
             ['key' => 'monitoring', 'label' => 'Monitoring', 'href' => base_url('monitoring'), 'icon' => 'database'],
             ['key' => 'tasks', 'label' => 'API Task Registry', 'href' => base_url('tasks'), 'icon' => 'list'],
             ['key' => 'logs', 'label' => 'Execution Logs', 'href' => base_url('logs'), 'icon' => 'activity'],

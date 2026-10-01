@@ -137,7 +137,11 @@ $formatDate = static function ($value) {
       button.textContent = 'Syncing…';
       try {
         const response = await fetch(`<?= base_url('api/sync/run') ?>/${encodeURIComponent(taskCode)}`, {
-          method: 'POST', headers: { 'Accept': 'application/json' }
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+          }
         });
         const payload = await response.json();
         if (!response.ok || !payload.log) throw new Error(payload.message || 'Sync request failed.');

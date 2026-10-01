@@ -8,6 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
+        $this->call(UsersSeeder::class);
         $this->call(SapMaterialMasterSeeder::class);
         $this->call(SapCustomerMasterSeeder::class);
         $this->call(SapCustomerMaterialSeeder::class);
