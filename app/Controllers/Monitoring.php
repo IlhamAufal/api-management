@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\Sync\HistoryCheckService;
 use App\Models\ApiSyncTaskModel;
 use App\Models\MonitoringAppModel;
 use App\Models\SysSyncLogModel;
@@ -16,8 +17,22 @@ class Monitoring extends BaseController
         $apps = $appModel->getActiveAppsWithTableCount();
 
         foreach ($apps as &$app) {
+            $isCheckApp = HistoryCheckService::sourceForAppCode($app['app_code']) !== null;
             $tables = $appModel->getActiveTables((int) $app['id']);
+
+            // Aplikasi cek read-only hanya menulis log MANUAL_UI, bukan CRON.
+            foreach ($tables as &$table) {
+                $taskCode = $table['sync_task_code'] ?? null;
+                $table['last_cron'] = $taskCode
+                    ? ($isCheckApp
+                        ? $logModel->getLatestLogByTaskCode($taskCode)
+                        : $logModel->getLatestCronByTaskCode($taskCode))
+                    : null;
+            }
+            unset($table);
+
             $app += $this->summarizeApplication($tables, $logModel);
+            $app['check_supported'] = $isCheckApp;
         }
         unset($app);
 
@@ -39,6 +54,10 @@ class Monitoring extends BaseController
             throw PageNotFoundException::forPageNotFound('Aplikasi monitoring tidak ditemukan.');
         }
 
+        $historyCheck = new HistoryCheckService();
+        $checkSource  = $historyCheck->sourceForApp($appCode);
+        $isCheckApp   = $checkSource !== null;
+
         $tables = $appModel->getActiveTables((int) $app['id']);
         $taskCodes = [];
         $tableByTaskCode = [];
@@ -55,14 +74,19 @@ class Monitoring extends BaseController
 
             $taskCodes[] = $taskCode;
             $tableByTaskCode[$taskCode] = $table;
-            $table['last_cron'] = $logModel->getLatestCronByTaskCode($taskCode);
+            $table['last_cron'] = $isCheckApp
+                ? $logModel->getLatestLogByTaskCode($taskCode)
+                : $logModel->getLatestCronByTaskCode($taskCode);
             $table['operational_status'] = $table['last_cron']['status'] ?? 'UNKNOWN';
             $task = $taskModel->where('task_code', $taskCode)->first();
             $table['cron_expression'] = $task['cron_expression'] ?? null;
         }
         unset($table);
 
-        $history = $logModel->getCronHistoryByTaskCodes(array_values(array_unique($taskCodes)), 50);
+        $uniqueCodes = array_values(array_unique($taskCodes));
+        $history = $isCheckApp
+            ? $logModel->getHistoryByTaskCodes($uniqueCodes, 50)
+            : $logModel->getCronHistoryByTaskCodes($uniqueCodes, 50);
         foreach ($history as &$log) {
             $mappedTable = $tableByTaskCode[$log['task_code']] ?? [];
             $log['table_code'] = $mappedTable['table_code'] ?? '—';
@@ -72,6 +96,18 @@ class Monitoring extends BaseController
 
         $summary = $this->summarizeApplication($tables, $logModel);
 
+        $check = null;
+        if ($isCheckApp) {
+            $check = [
+                'source'         => $checkSource,
+                'source_label'   => HistoryCheckService::SOURCE_LABELS[$checkSource] ?? $checkSource,
+                'configured'     => $historyCheck->isConfigured($checkSource),
+                'npd_configured' => $historyCheck->isConfigured('npd'),
+                'sap_configured' => $historyCheck->isConfigured('sap'),
+                'comparison'     => $historyCheck->comparison(),
+            ];
+        }
+
         return view('pages/monitoring/show', [
             'title'    => $app['app_name'] . ' | Monitoring MD-Bridge',
             'page'     => 'monitoring',
@@ -79,8 +115,41 @@ class Monitoring extends BaseController
             'tables'   => $tables,
             'history'  => $history,
             'summary'  => $summary,
-            'workflow' => $this->buildWorkflow($app, $tables, $summary),
+            'check'    => $check,
+            'workflow' => $this->buildWorkflow($app, $tables, $summary, $isCheckApp),
         ]);
+    }
+
+    /**
+     * Jalankan pemeriksaan read-only untuk satu aplikasi (AJAX).
+     * Menulis log MANUAL_UI per tabel lalu mengembalikan hasil + perbandingan.
+     */
+    public function check($appCode)
+    {
+        $appModel = new MonitoringAppModel();
+        $app = $appModel->findActiveByCode($appCode);
+
+        if ($app === null) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status'  => 'FAILED',
+                'message' => 'Aplikasi monitoring tidak ditemukan.',
+            ]);
+        }
+
+        $service = new HistoryCheckService();
+        if ($service->sourceForApp($appCode) === null) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status'  => 'FAILED',
+                'message' => 'Aplikasi ini tidak memiliki koneksi database read-only.',
+            ]);
+        }
+
+        // Pemeriksaan membaca beberapa tabel remote; longgarkan batas eksekusi.
+        set_time_limit(120);
+
+        $result = $service->runCheck($appCode);
+
+        return $this->response->setJSON($result);
     }
 
     public function showTable($appCode, $tableCode)
@@ -108,11 +177,14 @@ class Monitoring extends BaseController
             throw PageNotFoundException::forPageNotFound('Tabel monitoring tidak ditemukan pada aplikasi ini.');
         }
 
+        $isCheckApp = HistoryCheckService::sourceForAppCode($appCode) !== null;
         $taskCode = $table['sync_task_code'] ?? null;
         $task = null;
 
         if ($taskCode) {
-            $table['last_cron'] = $logModel->getLatestCronByTaskCode($taskCode);
+            $table['last_cron'] = $isCheckApp
+                ? $logModel->getLatestLogByTaskCode($taskCode)
+                : $logModel->getLatestCronByTaskCode($taskCode);
             $table['operational_status'] = $table['last_cron']['status'] ?? 'UNKNOWN';
             $task = $taskModel->where('task_code', $taskCode)->first();
             $table['cron_expression'] = $task['cron_expression'] ?? null;
@@ -122,21 +194,27 @@ class Monitoring extends BaseController
             $table['cron_expression'] = null;
         }
 
-        $history = $taskCode ? $logModel->getCronHistoryByTaskCodes([$taskCode], 50) : [];
+        $history = [];
+        if ($taskCode) {
+            $history = $isCheckApp
+                ? $logModel->getHistoryByTaskCodes([$taskCode], 50)
+                : $logModel->getCronHistoryByTaskCodes([$taskCode], 50);
+        }
         $lastCron = $table['last_cron'];
         $totals = $this->summarizeTableHistory($history);
         $workflow = $this->buildTableWorkflow($app, $table, $task);
 
         return view('pages/monitoring/table', [
-            'title'    => $table['table_name'] . ' | ' . $app['app_name'] . ' | Monitoring MD-Bridge',
-            'page'     => 'monitoring',
-            'app'      => $app,
-            'table'    => $table,
-            'task'     => $task,
-            'history'  => $history,
-            'totals'   => $totals,
-            'lastCron' => $lastCron,
-            'workflow' => $workflow,
+            'title'     => $table['table_name'] . ' | ' . $app['app_name'] . ' | Monitoring MD-Bridge',
+            'page'      => 'monitoring',
+            'app'       => $app,
+            'table'     => $table,
+            'task'      => $task,
+            'history'   => $history,
+            'totals'    => $totals,
+            'lastCron'  => $lastCron,
+            'workflow'  => $workflow,
+            'checkMode' => $isCheckApp,
         ]);
     }
 
@@ -200,13 +278,19 @@ class Monitoring extends BaseController
             $lastMeta[] = ['label' => 'Schedule', 'value' => $table['cron_expression']];
         }
 
+        // Mode cek read-only: tabel punya sync_task_code tapi tidak ada
+        // baris di api_sync_tasks (task null) => sumbernya DB, bukan SAP.
+        $isCheck = $task === null && !empty($table['sync_task_code']);
+
         $nodes[] = [
             'key'      => 'source',
             'column'   => 0,
             'variant'  => 'source',
             'icon'     => 'cloud',
-            'title'    => 'SAP S/4HANA Cloud',
-            'subtitle' => ($task['source_endpoint'] ?? '') !== '' ? 'OData API source' : 'Data source',
+            'title'    => $isCheck ? ('MySQL ' . ($app['database_name'] ?: 'sumber')) : 'SAP S/4HANA Cloud',
+            'subtitle' => $isCheck
+                ? 'Koneksi read-only (SELECT)'
+                : (($task['source_endpoint'] ?? '') !== '' ? 'OData API source' : 'Data source'),
             'status'   => 'SOURCE',
             'meta'     => [],
         ];
@@ -216,8 +300,10 @@ class Monitoring extends BaseController
             'column'   => 1,
             'variant'  => 'process',
             'icon'     => 'worker',
-            'title'    => $task['task_name'] ?? 'Belum terhubung',
-            'subtitle' => $table['sync_task_code'] ?: 'Tidak ada task',
+            'title'    => $isCheck ? 'HistoryCheckService' : ($task['task_name'] ?? 'Belum terhubung'),
+            'subtitle' => $isCheck
+                ? ($table['sync_task_code'] . ' (cek manual)')
+                : ($table['sync_task_code'] ?: 'Tidak ada task'),
             'status'   => $status,
             'meta'     => $lastMeta,
         ];
@@ -264,7 +350,7 @@ class Monitoring extends BaseController
      * Drawflow visualization on the monitoring detail page. This is purely
      * a visual guide of the SAP -> Worker -> Tables -> Destination pipeline.
      */
-    private function buildWorkflow(array $app, array $tables, array $summary): array
+    private function buildWorkflow(array $app, array $tables, array $summary, bool $checkMode = false): array
     {
         $nodes = [];
         $edges = [];
@@ -275,24 +361,24 @@ class Monitoring extends BaseController
             'column'   => 0,
             'variant'  => 'source',
             'icon'     => 'cloud',
-            'title'    => 'SAP S/4HANA Cloud',
-            'subtitle' => 'OData API source',
+            'title'    => $checkMode ? ('MySQL ' . ($app['database_name'] ?: 'sumber')) : 'SAP S/4HANA Cloud',
+            'subtitle' => $checkMode ? 'Koneksi read-only (SELECT)' : 'OData API source',
             'status'   => 'SOURCE',
             'meta'     => [],
         ];
 
-        // Column 1 - the sync worker (cron)
+        // Column 1 - the sync worker (cron) / read-only checker
         $nodes[] = [
             'key'      => 'worker',
             'column'   => 1,
             'variant'  => 'process',
             'icon'     => 'worker',
-            'title'    => 'CI4 Sync Worker',
-            'subtitle' => 'Cron scheduler',
+            'title'    => $checkMode ? 'HistoryCheckService' : 'CI4 Sync Worker',
+            'subtitle' => $checkMode ? 'Pemeriksaan read-only (manual)' : 'Cron scheduler',
             'status'   => $summary['operational_status'],
             'meta'     => [
                 ['label' => 'Tabel termapping', 'value' => (int) $summary['mapped_tables'] . '/' . count($tables)],
-                ['label' => 'Telemetry', 'value' => (int) $summary['reported_tables'] . ' aktif'],
+                ['label' => $checkMode ? 'Terpantau' : 'Telemetry', 'value' => (int) $summary['reported_tables'] . ' aktif'],
             ],
         ];
 

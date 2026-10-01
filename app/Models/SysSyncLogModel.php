@@ -52,6 +52,22 @@ class SysSyncLogModel extends Model
             ->findAll($limit);
     }
 
+    /**
+     * Riwayat semua trigger (CRON + MANUAL_UI + WEBHOOK) untuk task codes.
+     * Dipakai aplikasi cek read-only yang hanya menulis log MANUAL_UI.
+     */
+    public function getHistoryByTaskCodes(array $taskCodes, $limit = 50)
+    {
+        if ($taskCodes === []) {
+            return [];
+        }
+
+        return $this->whereIn('task_code', $taskCodes)
+            ->orderBy('executed_at', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->findAll($limit);
+    }
+
     public function getDashboardSummary()
     {
         return $this->db->table($this->table)

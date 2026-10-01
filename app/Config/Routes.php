@@ -38,6 +38,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'Dashboard::index');
     $routes->get('dashboard', 'Dashboard::index');
     $routes->get('monitoring', 'Monitoring::index');
+    $routes->post('monitoring/check/(:segment)', 'Monitoring::check/$1');
     $routes->get('monitoring/(:segment)/(:segment)', 'Monitoring::showTable/$1/$2');
     $routes->get('monitoring/(:segment)', 'Monitoring::show/$1');
     $routes->get('tasks', 'TaskRegistry::index');
@@ -50,8 +51,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('logs', 'SyncLogs::index');
     $routes->post('logout', 'Auth::logout');
     $routes->post('api/sync/run/(:segment)', 'Api\\SyncController::run/$1');
+    $routes->post('api/sync/run-all', 'Api\\SyncController::runAll');
 });
 
+$routes->group('api/sync', ['namespace' => 'App\Controllers\Api'], static function ($routes) {
+    $routes->post('run-all', 'SyncController::runAll');
+    $routes->post('run/(:segment)', 'SyncController::run/$1');
+});
 /*
  * --------------------------------------------------------------------
  * Additional Routing

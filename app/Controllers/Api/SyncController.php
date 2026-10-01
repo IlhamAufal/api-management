@@ -3,14 +3,19 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Libraries\Sync\SyncPipeline;
 use App\Models\ApiSyncTaskModel;
-use App\Models\SysSyncLogModel;
-use Throwable;
 
 class SyncController extends BaseController
 {
+    /**
+     * Sync spesifik per tabel / task_code (manual, tanpa cron).
+     */
     public function run($taskCode)
     {
+        // Fetch + upsert bisa lebih lama dari batas eksekusi default.
+        set_time_limit(300);
+
         $taskModel = new ApiSyncTaskModel();
         $task = $taskModel->where('task_code', $taskCode)->first();
 
@@ -24,51 +29,64 @@ class SyncController extends BaseController
                 ]);
         }
 
-        $startedAt = microtime(true);
-        usleep(300000);
+        $result   = (new SyncPipeline())->run($task, 'MANUAL_UI');
+        $status   = $result['log']['status'] ?? 'FAILED';
+        $isFailed = $status === 'FAILED';
 
-        $failed = random_int(1, 5) === 1;
-        $duration = round(microtime(true) - $startedAt, 2);
-        $now = date('Y-m-d H:i:s');
-        $logData = [
-            'task_code'      => $task['task_code'],
-            'trigger_type'   => 'MANUAL_UI',
-            'status'         => $failed ? 'FAILED' : 'SUCCESS',
-            'step_failed'    => $failed ? 'FETCH_GET' : 'NONE',
-            'records_read'   => 0,
-            'records_written'=> 0,
-            'duration_sec'   => $duration,
-            'error_message'  => $failed ? 'Connection timeout to SAP endpoint' : null,
-            'executed_at'    => $now,
-            'finished_at'    => $now,
-        ];
+        return $this->response
+            ->setStatusCode($isFailed ? 500 : 200)
+            ->setJSON([
+                'status'  => $status,
+                'message' => $result['message'],
+                'log'     => $result['log'],
+            ]);
+    }
 
-        if (!$failed) {
-            $records = $taskModel->countTargetTableRows($task['target_table']);
-            $logData['records_read'] = $records;
-            $logData['records_written'] = $records;
-        }
+    /**
+     * Wrapper Sync All: menjalankan semua task aktif secara berurutan.
+     */
+    public function runAll()
+    {
+        // Berurutan untuk semua task aktif; longgarkan batas eksekusi default.
+        set_time_limit(900);
 
-        try {
-            $logModel = new SysSyncLogModel();
-            $logModel->insert($logData);
-            $log = $logModel->find($logModel->getInsertID());
-        } catch (Throwable $exception) {
+        $taskModel = new ApiSyncTaskModel();
+        $tasks = $taskModel->where('is_active', 1)->findAll();
+
+        if (empty($tasks)) {
             return $this->response
-                ->setStatusCode(500)
+                ->setStatusCode(404)
                 ->setJSON([
                     'status'  => 'FAILED',
-                    'message' => 'Log sinkronisasi gagal disimpan.',
-                    'log'     => null,
+                    'message' => 'Tidak ada task aktif yang ditemukan.',
+                    'details' => [],
                 ]);
         }
 
+        $pipeline = new SyncPipeline();
+        $results = [];
+        $hasFailure = false;
+
+        foreach ($tasks as $task) {
+            $syncResult = $pipeline->run($task, 'MANUAL_UI');
+            $status = $syncResult['log']['status'] ?? 'FAILED';
+
+            $results[] = [
+                'task_code' => $task['task_code'],
+                'task_name' => $task['task_name'] ?? $task['task_code'],
+                'status'    => $status,
+                'message'   => $syncResult['message'],
+            ];
+
+            if ($status === 'FAILED') {
+                $hasFailure = true;
+            }
+        }
+
         return $this->response->setJSON([
-            'status'  => $log['status'],
-            'message' => $failed
-                ? 'Sync gagal: ' . $logData['error_message']
-                : 'Sync ' . ($task['task_name'] ?? $taskCode) . ' berhasil.',
-            'log'     => $log,
+            'status'  => $hasFailure ? 'PARTIAL_FAILED' : 'SUCCESS',
+            'message' => $hasFailure ? 'Beberapa task sinkronisasi mengalami kendala.' : 'Seluruh task sinkronisasi berhasil dijalankan.',
+            'details' => $results,
         ]);
     }
 }

@@ -51,6 +51,59 @@ class Database extends Config
     ];
 
     /**
+     * Read-only source connection: yp_npd (Aurora RDS).
+     * Used by HistoryCheckService to inspect sync history;
+     * credentials come from .env (database.npd.*).
+     *
+     * @var array
+     */
+    public $npd = [
+        'DSN'      => '',
+        'hostname' => '',
+        'username' => '',
+        'password' => '',
+        'database' => 'yp_npd',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => (ENVIRONMENT !== 'production'),
+        'charset'  => 'utf8',
+        'DBCollat' => 'utf8_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
+    ];
+
+    /**
+     * Read-only source connection: yp_sap (g2sp receiver DB).
+     * Credentials come from .env (database.sap.*).
+     *
+     * @var array
+     */
+    public $sap = [
+        'DSN'      => '',
+        'hostname' => '',
+        'username' => '',
+        'password' => '',
+        'database' => 'yp_sap',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => (ENVIRONMENT !== 'production'),
+        'charset'  => 'utf8',
+        'DBCollat' => 'utf8_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
+    ];
+
+    /**
      * This database connection is used when
      * running PHPUnit database tests.
      *

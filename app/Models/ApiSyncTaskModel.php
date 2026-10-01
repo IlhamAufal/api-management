@@ -28,7 +28,7 @@ class ApiSyncTaskModel extends Model
         'task_code'       => 'required|alpha_dash|min_length[3]|max_length[50]|is_unique[api_sync_tasks.task_code,id,{id}]',
         'task_name'       => 'required|string|min_length[3]|max_length[100]',
         'category'        => 'required|string|max_length[50]',
-        'source_type'     => 'required|in_list[DIRECT_DB,HTTP_GET,HTTP_POST]',
+        'source_type'     => 'required|in_list[HTTP_GET,HTTP_POST]',
         'source_endpoint' => 'required|string|max_length[500]',
         'target_table'    => 'required|alpha_dash|max_length[100]',
         'batch_size'      => 'required|is_natural|greater_than[0]|less_than_equal_to[10000]',

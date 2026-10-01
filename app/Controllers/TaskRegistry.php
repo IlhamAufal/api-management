@@ -9,10 +9,10 @@ use Config\Services;
 class TaskRegistry extends BaseController
 {
     private const CATEGORIES = ['SAP_MASTER', 'GENERAL'];
-    private const SOURCE_TYPES = ['DIRECT_DB', 'HTTP_GET', 'HTTP_POST'];
+    private const SOURCE_TYPES = ['HTTP_GET', 'HTTP_POST'];
 
     /**
-     * Shared form metadata consumed by the task modal component.
+     * Shared form metadata consumed by the task form component.
      */
     private function formMeta(): array
     {
@@ -38,17 +38,15 @@ class TaskRegistry extends BaseController
     }
 
     /**
-     * GET /tasks/new — renders the page with the create modal open.
+     * GET /tasks/new — halaman form create.
      */
     public function create()
     {
-        return $this->renderIndex([
-            'openModal' => true,
-        ]);
+        return $this->renderForm('pages/task_registry/create', null, 'Tambah Task');
     }
 
     /**
-     * GET /tasks/edit/(:num) — renders the page with the edit modal open.
+     * GET /tasks/edit/(:num) — halaman form edit.
      */
     public function edit($id)
     {
@@ -59,10 +57,7 @@ class TaskRegistry extends BaseController
                 ->with('flash_error', 'Task tidak ditemukan.');
         }
 
-        return $this->renderIndex([
-            'modalTask' => $task,
-            'openModal' => true,
-        ]);
+        return $this->renderForm('pages/task_registry/edit', $task, 'Edit Task');
     }
 
     public function store()
@@ -91,7 +86,7 @@ class TaskRegistry extends BaseController
                 ->with('flash_error', 'Task tidak ditemukan.');
         }
 
-        $post = $this->normalizedPost();
+        $post = $this->normalizedPost((string) ($task['cron_expression'] ?? ''));
 
         if (!$this->runValidation($post, (int) $id)) {
             return redirect()->to(base_url('tasks/edit/' . $id))
@@ -142,9 +137,9 @@ class TaskRegistry extends BaseController
     }
 
     /**
-     * Render the registry page, optionally with the task modal pre-opened.
+     * Render the registry list page.
      */
-    private function renderIndex(array $extra = []): string
+    private function renderIndex(): string
     {
         $tasks = $this->taskModel->getAllTasks();
         $linked = $this->appModel->getLinkedTaskApps(array_column($tasks, 'task_code'));
@@ -155,32 +150,63 @@ class TaskRegistry extends BaseController
         }
         unset($task);
 
-        return view('pages/task_registry/index', array_merge([
-            'title'     => 'API Task Registry | MD-Bridge',
-            'page'      => 'tasks',
-            'tasks'     => $tasks,
-            'modalTask' => null,
-        ], $this->formMeta(), $extra));
+        return view('pages/task_registry/index', [
+            'title' => 'API Task Registry | MD-Bridge',
+            'page'  => 'tasks',
+            'tasks' => $tasks,
+        ]);
+    }
+
+    /**
+     * Render a standalone form page (create atau edit).
+     */
+    private function renderForm(string $view, ?array $task, string $heading): string
+    {
+        // withInput() menyimpan flashdata '_ci_old_input' sebagai
+        // ['get' => [...], 'post' => [...]].
+        $oldFlash = session()->getFlashdata('_ci_old_input');
+        $oldInput = [];
+        if (is_array($oldFlash)) {
+            $oldInput = (array) ($oldFlash['post'] ?? ($oldFlash['old'] ?? []));
+        }
+
+        return view($view, array_merge([
+            'title'      => $heading . ' | API Task Registry | MD-Bridge',
+            'page'       => 'tasks',
+            'task'       => $task,
+            'errors'     => (array) (session()->getFlashdata('validation_errors') ?: []),
+            'oldInput'   => $oldInput,
+            'formAction' => $task !== null
+                ? base_url('tasks/update/' . (int) $task['id'])
+                : base_url('tasks'),
+            'isEdit'     => $task !== null,
+            'cancelUrl'  => base_url('tasks'),
+        ], $this->formMeta()));
     }
 
     /**
      * Normalized POST payload. is_active is checkbox-driven, so it is
      * derived from presence instead of value.
+     *
+     * Field cron_expression disembunyikan dari form; bila tidak dikirim,
+     * nilai lama ($fallbackCron) dipertahankan agar jadwal tersimpan di
+     * database tidak terhapus.
      */
-    private function normalizedPost(): array
+    private function normalizedPost(?string $fallbackCron = null): array
     {
         $category = trim((string) $this->request->getPost('category'));
         $sourceType = (string) $this->request->getPost('source_type');
+        $cron = $this->request->getPost('cron_expression');
 
         return [
             'task_code'       => strtolower(trim((string) $this->request->getPost('task_code'))),
             'task_name'       => trim((string) $this->request->getPost('task_name')),
             'category'        => in_array($category, self::CATEGORIES, true) ? $category : self::CATEGORIES[0],
-            'source_type'     => in_array($sourceType, self::SOURCE_TYPES, true) ? $sourceType : self::SOURCE_TYPES[1],
+            'source_type'     => in_array($sourceType, self::SOURCE_TYPES, true) ? $sourceType : self::SOURCE_TYPES[0],
             'source_endpoint' => trim((string) $this->request->getPost('source_endpoint')),
             'target_table'    => (string) $this->request->getPost('target_table'),
             'batch_size'      => (string) $this->request->getPost('batch_size'),
-            'cron_expression' => trim((string) $this->request->getPost('cron_expression')),
+            'cron_expression' => $cron !== null ? trim((string) $cron) : (string) $fallbackCron,
             'is_active'       => $this->request->getPost('is_active') !== null ? '1' : '0',
         ];
     }

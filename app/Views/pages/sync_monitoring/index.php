@@ -49,11 +49,13 @@ $formatDate = static function ($value) {
             <th class="px-5 py-3 text-sm font-semibold">Last Synced At</th>
             <th class="px-5 py-3 text-sm font-semibold">Duration</th>
             <th class="px-5 py-3 text-sm font-semibold">Latest Status</th>
-            <th class="px-5 py-3 text-sm font-semibold">Cron Schedule</th>
             <th class="px-5 py-3 text-sm font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <?php if (empty($tasks)): ?>
+            <tr><td colspan="6" class="px-5 py-12 text-center"><p class="font-medium text-gray-700 dark:text-gray-200">Tidak ada task sinkronisasi aktif</p><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">4 task SAP dinonaktifkan sementara karena sumbernya butuh VPN. Riwayat sinkronisasi yp_npd &amp; yp_sap tersedia di menu <a href="<?= base_url('monitoring') ?>" class="font-semibold text-brand-500 hover:text-brand-600">Monitoring</a>.</p></td></tr>
+          <?php endif; ?>
           <?php foreach ($tasks as $task): ?>
             <?php
             $log = $task['last_log'] ?? null;
@@ -89,7 +91,6 @@ $formatDate = static function ($value) {
               <td class="last-synced px-5 py-4 text-sm text-gray-600 dark:text-gray-300"><?= esc($formatDate($log['finished_at'] ?? $log['executed_at'] ?? null)) ?></td>
               <td class="duration px-5 py-4 text-sm text-gray-600 dark:text-gray-300"><?= esc($log ? number_format((float) $log['duration_sec'], 2) . 's' : '—') ?></td>
               <td class="status-cell px-5 py-4"><?= view('components/badge_status', ['status' => $status]) ?></td>
-              <td class="px-5 py-4"><code class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"><?= esc($task['cron_expression'] ?: '—') ?></code></td>
               <td class="px-5 py-4">
                 <div class="flex items-center gap-2">
                   <button type="button" class="sync-now inline-flex rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:cursor-wait disabled:opacity-60">Sync Now</button>
@@ -153,7 +154,7 @@ $formatDate = static function ($value) {
         row.querySelector('.last-synced').textContent = formatTimestamp(log.finished_at || log.executed_at);
         row.querySelector('.duration').textContent = `${Number(log.duration_sec || 0).toFixed(2)}s`;
         row.dataset.audit = JSON.stringify(detailFromLog(row.dataset.taskName, taskCode, log));
-        notify(log.status === 'SUCCESS' ? 'success' : 'error', payload.message);
+        notify(log.status === 'FAILED' ? 'error' : 'success', payload.message);
       } catch (error) {
         notify('error', error.message || 'Unable to run sync.');
       } finally {

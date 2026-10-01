@@ -1,0 +1,102 @@
+/*
+ * utilities-patch.css
+ * ---------------------------------------------------------------------------
+ * style.css adalah hasil compile Tailwind CSS v4 yang di-scan dari source
+ * TailAdmin. Sejumlah utility yang dipakai oleh view (khususnya navbar) tidak
+ * ikut ter-compile, akibatnya:
+ *   - bg-white/95, backdrop-blur-sm, dark:bg-gray-900/95 -> navbar transparan
+ *   - bg-red-600, hover:bg-red-700, shadow-xs          -> tombol logout tanpa
+ *                                                         background (tak terlihat
+ *                                                         di light theme)
+ *   - sm:inline, md:inline-flex, truncate, h-9, dst.   -> elemen tidak tampil
+ *                                                         sesuai desain
+ * File ini melengkapi utility yang hilang. Dimuat SETELAH style.css, dan sengaja
+ * tanpa @layer agar menang atas rule bawaan @layer utilities.
+ * ---------------------------------------------------------------------------
+ */
+
+/* --- Sizing & spacing ---------------------------------------------------- */
+.h-9 { height: calc(var(--spacing) * 9); }
+.w-9 { width: calc(var(--spacing) * 9); }
+.w-4 { width: calc(var(--spacing) * 4); }
+.w-3\.5 { width: calc(var(--spacing) * 3.5); }
+.h-4\.5 { height: calc(var(--spacing) * 4.5); }
+.w-4\.5 { width: calc(var(--spacing) * 4.5); }
+.w-auto { width: auto; }
+.gap-2\.5 { gap: calc(var(--spacing) * 2.5); }
+.gap-3\.5 { gap: calc(var(--spacing) * 3.5); }
+.m-0 { margin: 0; }
+.max-w-\[130px\] { max-width: 130px; }
+
+/* --- Typography ---------------------------------------------------------- */
+.text-\[10px\] { font-size: 10px; }
+.leading-none { line-height: 1; }
+.leading-relaxed { line-height: 1.625; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Effects (shadow & focus ring) --------------------------------------- */
+.shadow-xs { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.backdrop-blur-sm { backdrop-filter: blur(8px); }
+.focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+.focus\:ring-2:focus { box-shadow: 0 0 0 2px var(--tw-ring-color, rgb(59 130 246 / 0.5)); }
+.focus\:ring-red-500\/30:focus { --tw-ring-color: rgb(239 68 68 / 0.3); }
+
+/* --- Colors (navbar, pill status, tombol logout) ------------------------- */
+.bg-gray-50\/80 { background-color: color-mix(in oklab, var(--color-gray-50) 80%, transparent); }
+.border-gray-200\/80 { border-color: color-mix(in oklab, var(--color-gray-200) 80%, transparent); }
+.bg-red-600 { background-color: #dc2626; }
+.hover\:bg-red-700:hover { background-color: #b91c1c; }
+
+.dark .dark\:bg-gray-800\/40 { background-color: color-mix(in oklab, var(--color-gray-800) 40%, transparent); }
+.dark .dark\:text-gray-500 { color: var(--color-gray-500); }
+.dark .dark\:hover\:bg-gray-700:hover { background-color: var(--color-gray-700); }
+.dark .dark\:bg-red-600 { background-color: #dc2626; }
+.dark .dark\:hover\:bg-red-700:hover { background-color: #b91c1c; }
+
+/* --- Responsive variants ------------------------------------------------- */
+@media (min-width: 640px) {
+  .sm\:inline { display: inline; }
+  .sm\:gap-3 { gap: calc(var(--spacing) * 3); }
+}
+
+@media (min-width: 768px) {
+  .md\:block { display: block; }
+  .md\:inline-flex { display: inline-flex; }
+}
+
+/* ===========================================================================
+ * Batch 2 — halaman API Task Registry (index, create, edit) & task_form
+ * ========================================================================= */
+
+/* --- Layout: tabel, code, form ------------------------------------------- */
+.rounded { border-radius: 0.25rem; }
+.min-w-\[1150px\] { min-width: 1150px; }
+.max-w-\[260px\] { max-width: 260px; }
+.flex-col-reverse { flex-direction: column-reverse; }
+.outline-none { outline-style: none; }
+
+/* --- Spacing ------------------------------------------------------------- */
+.m-5 { margin: calc(var(--spacing) * 5); }
+.ml-1 { margin-left: calc(var(--spacing) * 1); }
+.pl-6 { padding-left: calc(var(--spacing) * 6); }
+.px-1\.5 { padding-inline: calc(var(--spacing) * 1.5); }
+
+/* --- Border & focus ring (form) ------------------------------------------ */
+/* --color-error-400 tidak ada di theme, pakai nilai error-400 bawaan. */
+.border-error-400 { border-color: #f97066; }
+.focus\:ring-brand-500\/20:focus { --tw-ring-color: color-mix(in oklab, var(--color-brand-500) 20%, transparent); }
+.focus\:ring-brand-500\/30:focus { --tw-ring-color: color-mix(in oklab, var(--color-brand-500) 30%, transparent); }
+
+/* --- Hover states (tombol aksi, tombol kembali) -------------------------- */
+.hover\:bg-brand-50:hover { background-color: var(--color-brand-50); }
+.hover\:bg-error-50:hover { background-color: var(--color-error-50); }
+.hover\:border-error-300:hover { border-color: var(--color-error-300); }
+.dark .dark\:hover\:bg-brand-500\/10:hover { background-color: color-mix(in oklab, var(--color-brand-500) 10%, transparent); }
+.dark .dark\:hover\:bg-error-500\/10:hover { background-color: color-mix(in oklab, var(--color-error-500) 10%, transparent); }
+.dark .dark\:hover\:border-error-700:hover { border-color: var(--color-error-700); }
+.dark .dark\:hover\:bg-white\/\[0\.06\]:hover { background-color: color-mix(in oklab, var(--color-white) 6%, transparent); }
+
+@media (min-width: 640px) {
+  .sm\:m-6 { margin: calc(var(--spacing) * 6); }
+  .sm\:col-span-2 { grid-column: span 2 / span 2; }
+}
