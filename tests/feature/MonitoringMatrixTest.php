@@ -5,9 +5,9 @@ use CodeIgniter\Test\FeatureTestTrait;
 use Tests\Support\MonitoringFixtureTrait;
 
 /**
- * Feature test matrix monitoring + execution logs:
- * empty state, render sel per status, halaman riwayat/check-all,
- * dan nonaktifnya route pipeline lama.
+ * Feature test monitoring per-source (sub-tab navigation, Plan-2 Task 5):
+ * tab bar source, daftar tabel per source (worst-first), empty state,
+ * check-cell / check-source, dan nonaktifnya route check-table lama.
  *
  * Trait sudah men-seed source `npd` (id 1) dan `sap` (id 2).
  *
@@ -25,86 +25,205 @@ final class MonitoringMatrixTest extends CIUnitTestCase
     }
 
     // ------------------------------------------------------------------
-    // Render matrix
+    // Render halaman per-source
     // ------------------------------------------------------------------
 
-    public function testMatrixShowsEmptyStateWhenNoWatchedTables()
+    public function testLandingRendersFirstActiveSourceWithTabBar()
     {
+        $this->insertWatchedTable(['label' => 'Pesanan FX']);
+
         $result = $this->withSession($this->authSession())->get('monitoring');
+
+        $result->assertOK();
+        // Tab bar menampilkan kedua source.
+        $this->assertBodySee('NPD (RDS)', $result);
+        $this->assertBodySee('SAP', $result);
+        $this->assertBodySee('monitoring/source/npd', $result);
+        $this->assertBodySee('monitoring/source/sap', $result);
+        // Landing = source aktif pertama (npd) tanpa redirect.
+        $this->assertBodySee('Pesanan FX', $result);
+        $this->assertBodySee('Check Sumber Ini', $result);
+    }
+
+    public function testEmptyStateWhenNoActiveSources()
+    {
+        $this->deleteSource('npd');
+        $this->deleteSource('sap');
+
+        $result = $this->withSession($this->authSession())->get('monitoring');
+
+        $result->assertOK();
+        $this->assertBodySee('Belum ada source aktif', $result);
+    }
+
+    public function testSourcePageShowsEmptyStateWhenNoWatchedTables()
+    {
+        $result = $this->withSession($this->authSession())->get('monitoring/source/npd');
 
         $result->assertOK();
         $this->assertBodySee('Belum ada watched table aktif', $result);
     }
 
-    public function testMatrixRendersSingleSourceColumnWithStatusBadge()
+    public function testSourcePageRendersTableWithStatusBadge()
     {
-        $this->deleteSource('sap'); // sisa npd saja -> matrix 1 kolom source
         $npd     = $this->sourceId('npd');
         $tableId = $this->insertWatchedTable(['label' => 'Pesanan FX']);
         $this->insertSnapshot([
             'watched_table_id' => $tableId,
             'source_id'        => $npd,
             'status'           => 'OK',
+            'row_count'        => 1234,
         ]);
 
-        $result = $this->withSession($this->authSession())->get('monitoring');
+        $result = $this->withSession($this->authSession())->get('monitoring/source/npd');
 
         $result->assertOK();
         $this->assertBodySee('Pesanan FX', $result);
         $this->assertBodySee('fx_orders', $result);
-        $this->assertBodySee('NPD (RDS)', $result); // header kolom source
         $this->assertStatusBadge($result, 'OK');
-        $this->assertBodyNotSee('SAP', $result); // kolom SAP tidak ikut tampil
+        $this->assertBodySee('1,234', $result);
     }
 
-    public function testMatrixRendersStaleAndConnErrorBadges()
+    public function testSourcePageOnlyShowsSnapshotForThatSource()
     {
         $npd     = $this->sourceId('npd');
-        $staleId = $this->insertWatchedTable([
-            'table_name' => 'fx_orders',
-            'label'      => 'Tabel STALE',
-        ]);
-        $errorId = $this->insertWatchedTable([
-            'table_name' => 'fx_ngawur',
-            'label'      => 'Tabel Error',
-        ]);
+        $sap     = $this->sourceId('sap');
+        $tableId = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        // STALE di npd, CONN_ERROR di sap.
         $this->insertSnapshot([
-            'watched_table_id' => $staleId,
+            'watched_table_id' => $tableId,
             'source_id'        => $npd,
             'status'           => 'STALE',
         ]);
         $this->insertSnapshot([
-            'watched_table_id' => $errorId,
+            'watched_table_id' => $tableId,
+            'source_id'        => $sap,
+            'status'           => 'CONN_ERROR',
+            'row_count'        => null,
+            'last_synced_at'   => null,
+            'error_message'    => 'Gagal koneksi ke host sap',
+        ]);
+
+        // Halaman npd: hanya STALE, bukan CONN_ERROR.
+        $npdPage = $this->withSession($this->authSession())->get('monitoring/source/npd');
+        $npdPage->assertOK();
+        $this->assertStatusBadge($npdPage, 'STALE');
+        $this->assertBodyNotSee('Gagal koneksi ke host sap', $npdPage);
+
+        // Halaman sap: CONN_ERROR + pesan error.
+        $sapPage = $this->withSession($this->authSession())->get('monitoring/source/sap');
+        $sapPage->assertOK();
+        $this->assertStatusBadge($sapPage, 'CONN_ERROR');
+        $this->assertBodySee('Gagal koneksi ke host sap', $sapPage);
+    }
+
+    public function testSourcePageCellWithoutSnapshotShowsBelumDicek()
+    {
+        $this->insertWatchedTable();
+
+        $result = $this->withSession($this->authSession())->get('monitoring/source/npd');
+
+        $result->assertOK();
+        $this->assertStatusBadge($result, 'NEVER_SYNCED');
+        $this->assertBodySee('belum dicek', $result);
+    }
+
+    public function testSourcePageRendersPendingConfigBadgeWithProvisioningMessage()
+    {
+        // Snapshot source tanpa credential (hasil langkah 0 checker Agent A).
+        $npd     = $this->sourceId('npd');
+        $tableId = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        $this->insertSnapshot([
+            'watched_table_id' => $tableId,
+            'source_id'        => $npd,
+            'status'           => 'PENDING_CONFIG',
+            'row_count'        => null,
+            'last_synced_at'   => null,
+            'error_message'    => 'Harap tambahkan credential terlebih dahulu.',
+        ]);
+
+        $result = $this->withSession($this->authSession())->get('monitoring/source/npd');
+
+        $result->assertOK();
+        $this->assertStatusBadge($result, 'PENDING_CONFIG');
+        $this->assertBodySee('Harap tambahkan credential terlebih dahulu.', $result);
+        // Bukan CONN_ERROR — provisioning normal, bukan kerusakan.
+        $this->assertDoesNotMatchRegularExpression(
+            '/>\s*CONN_ERROR\s*</',
+            $result->response()->getBody(),
+            'Source PENDING_CONFIG tidak boleh tampil sebagai CONN_ERROR.'
+        );
+    }
+
+    public function testPendingConfigSortsAboveOkWorstFirst()
+    {
+        $npd     = $this->sourceId('npd');
+        $okId    = $this->insertWatchedTable(['table_name' => 'fx_orders', 'label' => 'AAA Pending']);
+        $pendId  = $this->insertWatchedTable(['table_name' => 'fx_lain', 'label' => 'ZZZ Pending']);
+        $this->insertSnapshot(['watched_table_id' => $okId, 'source_id' => $npd, 'status' => 'OK']);
+        $this->insertSnapshot([
+            'watched_table_id' => $pendId,
+            'source_id'        => $npd,
+            'status'           => 'PENDING_CONFIG',
+            'row_count'        => null,
+            'last_synced_at'   => null,
+        ]);
+
+        $result = $this->withSession($this->authSession())->get('monitoring/source/npd');
+        $result->assertOK();
+
+        $body = $result->response()->getBody();
+        // Severity: PENDING_CONFIG (5) > OK (1) — ZZZ harus muncul sebelum AAA.
+        $this->assertLessThan(
+            strpos($body, 'AAA Pending'),
+            strpos($body, 'ZZZ Pending'),
+            'Baris worst-first: PENDING_CONFIG harus di atas OK.'
+        );
+    }
+
+    public function testUnknownSourceCodeReturns404()
+    {
+        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->withSession($this->authSession())->get('monitoring/source/ngaco');
+    }
+
+    public function testInactiveSourceReturns404()
+    {
+        // Nonaktifkan sap -> halaman source-nya 404.
+        $this->monitoringDb()->table('sources')->where('code', 'sap')->update(['is_active' => 0]);
+
+        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->withSession($this->authSession())->get('monitoring/source/sap');
+    }
+
+    public function testRowsAreSortedWorstFirst()
+    {
+        $npd    = $this->sourceId('npd');
+        $okId   = $this->insertWatchedTable(['table_name' => 'fx_orders', 'label' => 'AAA Ok']);
+        $errId  = $this->insertWatchedTable(['table_name' => 'fx_ngawur', 'label' => 'ZZZ Error']);
+        $this->insertSnapshot(['watched_table_id' => $okId, 'source_id' => $npd, 'status' => 'OK']);
+        $this->insertSnapshot([
+            'watched_table_id' => $errId,
             'source_id'        => $npd,
             'status'           => 'CONN_ERROR',
             'row_count'        => null,
             'last_synced_at'   => null,
-            'error_message'    => 'Gagal koneksi ke host npd',
         ]);
 
-        $result = $this->withSession($this->authSession())->get('monitoring');
-
+        $result = $this->withSession($this->authSession())->get('monitoring/source/npd');
         $result->assertOK();
-        $this->assertBodySee('Tabel STALE', $result);
-        $this->assertBodySee('Tabel Error', $result);
-        $this->assertStatusBadge($result, 'STALE');
-        $this->assertStatusBadge($result, 'CONN_ERROR');
-        $this->assertBodySee('Gagal koneksi ke host npd', $result);
-    }
 
-    public function testMatrixCellWithoutSnapshotShowsNeverSynced()
-    {
-        $this->insertWatchedTable();
-
-        $result = $this->withSession($this->authSession())->get('monitoring');
-
-        $result->assertOK();
-        $this->assertStatusBadge($result, 'NEVER_SYNCED');
-        $this->assertBodySee('belum pernah dicek', $result);
+        $body = $result->response()->getBody();
+        // CONN_ERROR (worst) harus muncul sebelum OK di urutan baris.
+        $this->assertLessThan(
+            strpos($body, 'AAA Ok'),
+            strpos($body, 'ZZZ Error'),
+            'Baris worst-first: CONN_ERROR harus di atas OK.'
+        );
     }
 
     // ------------------------------------------------------------------
-    // Check All / Check Now
+    // Check All / Check Cell / Check Source
     // ------------------------------------------------------------------
 
     public function testCheckAllReturnsJsonSummaryAndSkipsInactiveTables()
@@ -133,21 +252,78 @@ final class MonitoringMatrixTest extends CIUnitTestCase
         );
         $this->assertNotContains($inactiveId . ':' . $npd, $checker->checkedPairs);
 
-        // Persist sungguhan (SQLite) terisi untuk 2 sel tersebut.
         $this->assertSame(2, $this->countRows('table_snapshots'));
         $this->assertSame(2, $this->countRows('check_history'));
     }
 
-    public function testCheckTableRejectsInactiveTable()
+    public function testCheckCellChecksOnlyOnePairAndRedirectsToSource()
     {
-        $id = $this->insertWatchedTable(['is_active' => 0]);
+        $npd = $this->sourceId('npd');
+        $id  = $this->insertWatchedTable(['table_name' => 'fx_orders', 'label' => 'Pesanan FX']);
 
         $result = $this->withSession($this->authSession())
-            ->post('monitoring/check-table/' . $id);
+            ->post('monitoring/check-cell/' . $id . '/' . $npd);
+
+        $result->assertRedirectTo(base_url('monitoring/source/npd'));
+        $result->assertSessionHas('flash_success');
+
+        // Tepat 1 sel ter-check.
+        $this->assertSame(1, $this->countRows('table_snapshots'));
+        $this->assertSame(1, $this->countRows('check_history'));
+
+        $checker = \Config\Services::freshnessChecker();
+        $this->assertSame([$id . ':' . $npd], $checker->checkedPairs);
+    }
+
+    public function testCheckCellRejectsInactiveTable()
+    {
+        $npd = $this->sourceId('npd');
+        $id  = $this->insertWatchedTable(['is_active' => 0]);
+
+        $result = $this->withSession($this->authSession())
+            ->post('monitoring/check-cell/' . $id . '/' . $npd);
 
         $result->assertRedirect();
         $result->assertSessionHas('flash_error');
         $this->assertSame(0, $this->countRows('check_history'));
+    }
+
+    public function testCheckSourceChecksAllActiveTablesForThatSourceOnly()
+    {
+        $npd      = $this->sourceId('npd');
+        $sap      = $this->sourceId('sap');
+        $tableId  = $this->insertWatchedTable(['table_name' => 'fx_orders']);
+        $table2   = $this->insertWatchedTable(['table_name' => 'fx_lain', 'label' => 'Tabel Lain']);
+
+        $result = $this->withSession($this->authSession())
+            ->post('monitoring/check-source/npd');
+
+        $result->assertRedirectTo(base_url('monitoring/source/npd'));
+        $result->assertSessionHas('flash_success');
+
+        $checker = \Config\Services::freshnessChecker();
+        // Hanya pasangan dengan source npd — sap tidak ikut.
+        $this->assertSame(
+            [$tableId . ':' . $npd, $table2 . ':' . $npd],
+            $checker->checkedPairs
+        );
+        $this->assertNotContains($tableId . ':' . $sap, $checker->checkedPairs);
+    }
+
+    public function testCheckSourceRejectsUnknownSource()
+    {
+        $result = $this->withSession($this->authSession())
+            ->post('monitoring/check-source/ngaco');
+
+        $result->assertRedirect();
+        $result->assertSessionHas('flash_error');
+        $this->assertSame(0, $this->countRows('check_history'));
+    }
+
+    public function testOldCheckTableRouteIsGone()
+    {
+        $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);
+        $this->post('monitoring/check-table/1');
     }
 
     // ------------------------------------------------------------------

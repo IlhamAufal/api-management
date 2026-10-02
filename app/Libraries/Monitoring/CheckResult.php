@@ -8,11 +8,12 @@ namespace App\Libraries\Monitoring;
  */
 class CheckResult
 {
-    public const NEVER_SYNCED  = 'NEVER_SYNCED';
-    public const STALE         = 'STALE';
-    public const OK            = 'OK';
-    public const MISSING_TABLE = 'MISSING_TABLE';
-    public const CONN_ERROR    = 'CONN_ERROR';
+    public const NEVER_SYNCED    = 'NEVER_SYNCED';
+    public const STALE           = 'STALE';
+    public const OK              = 'OK';
+    public const MISSING_TABLE   = 'MISSING_TABLE';
+    public const CONN_ERROR      = 'CONN_ERROR';
+    public const PENDING_CONFIG  = 'PENDING_CONFIG';
 
     public const ALL_STATUSES = [
         self::NEVER_SYNCED,
@@ -20,6 +21,7 @@ class CheckResult
         self::OK,
         self::MISSING_TABLE,
         self::CONN_ERROR,
+        self::PENDING_CONFIG,
     ];
 
     public string $status;

@@ -56,6 +56,19 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
 
       <div class="grid gap-5 md:grid-cols-2">
         <div>
+          <label for="source" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Database (filter introspeksi)</label>
+          <select id="source" name="source" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
+            <option value="">— Semua source —</option>
+            <?php foreach ($sources as $sourceOption): ?>
+              <option value="<?= esc($sourceOption['code']) ?>" <?= $selectedSource === $sourceOption['code'] ? 'selected' : '' ?>>
+                <?= esc($sourceOption['label']) ?> (<?= esc($sourceOption['code']) ?>)
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Menyaring daftar tabel & kolom agar sesuai database terpilih. Registrasi tetap berlaku untuk semua source aktif.</p>
+        </div>
+
+        <div>
           <label for="label" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Label <span class="text-error-500">*</span></label>
           <input type="text" id="label" name="label" value="<?= esc($value('label')) ?>" required maxlength="150" placeholder="Material Master" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90" />
         </div>
@@ -106,10 +119,21 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
 
 <script>
 (function () {
+  var sourceSelect = document.getElementById('source');
   var tableSelect = document.getElementById('table_name');
   var columnSelect = document.getElementById('sync_column');
   var currentColumn = <?= json_encode($value('sync_column')) ?>;
+  var currentTable = <?= json_encode($currentTable) ?>;
+  var tablesUrl = <?= json_encode(base_url('watched-tables/tables')) ?>;
   var columnsUrl = <?= json_encode(base_url('watched-tables/columns')) ?>;
+
+  function currentSource() {
+    return sourceSelect.value;
+  }
+
+  function sourceQuery() {
+    return '&source=' + encodeURIComponent(currentSource());
+  }
 
   function renderColumns(columns) {
     columnSelect.innerHTML = '';
@@ -135,6 +159,30 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
     });
   }
 
+  function renderTables(names) {
+    var current = tableSelect.value || currentTable;
+
+    // Tabel terpilih tetap ditampilkan meski tidak ada di lingkup source.
+    if (current && names.indexOf(current) === -1) {
+      names = names.concat([current]).sort();
+    }
+
+    tableSelect.innerHTML = '';
+
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '— pilih tabel —';
+    tableSelect.appendChild(placeholder);
+
+    names.forEach(function (name) {
+      var option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      option.selected = name === current;
+      tableSelect.appendChild(option);
+    });
+  }
+
   function loadColumns() {
     var table = tableSelect.value;
     currentColumn = columnSelect.value || currentColumn;
@@ -145,13 +193,26 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
     }
 
     columnSelect.disabled = true;
-    fetch(columnsUrl + '?table=' + encodeURIComponent(table), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    fetch(columnsUrl + '?table=' + encodeURIComponent(table) + sourceQuery(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function (response) { return response.json(); })
       .then(function (data) { renderColumns(data.columns || []); })
       .catch(function () { renderColumns([]); })
       .finally(function () { columnSelect.disabled = false; });
   }
 
+  function loadTables() {
+    tableSelect.disabled = true;
+    fetch(tablesUrl + '?source=' + encodeURIComponent(currentSource()), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (response) { return response.json(); })
+      .then(function (data) { renderTables(data.tables || []); })
+      .catch(function () { renderTables([]); })
+      .finally(function () {
+        tableSelect.disabled = false;
+        loadColumns();
+      });
+  }
+
+  sourceSelect.addEventListener('change', loadTables);
   tableSelect.addEventListener('change', loadColumns);
 
   if (tableSelect.value) {

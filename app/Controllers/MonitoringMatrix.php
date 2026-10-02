@@ -32,22 +32,82 @@ class MonitoringMatrix extends BaseController
 
     public function index()
     {
-        $tables  = $this->watchedModel->getActiveTables();
         $sources = $this->sourceModel->getActiveSources();
 
-        // Snapshot terkini per sel (tabel, source) dalam satu lookup map.
-        $snapshots = [];
-        foreach ($this->snapshotModel->findAll() as $snapshot) {
-            $snapshots[$snapshot['watched_table_id'] . ':' . $snapshot['source_id']] = $snapshot;
+        if ($sources === []) {
+            return $this->renderSource(null, $sources);
         }
 
-        return view('pages/monitoring_matrix/index', [
-            'title'       => 'Monitoring | MD-Bridge',
-            'page'        => 'monitoring',
-            'tables'      => $tables,
-            'sources'     => $sources,
-            'snapshots'   => $snapshots,
-            'relative'    => static fn (?string $dt): string => RelativeTime::format($dt),
+        // Landing = source aktif pertama (tanpa redirect; URL tetap /monitoring).
+        return $this->renderSource($sources[0], $sources);
+    }
+
+    /**
+     * Halaman satu source berdasarkan `sources.code`. Tiap tab adalah
+     * URL nyata yang bisa di-share. Code tidak ada / nonaktif → 404.
+     */
+    public function source(string $code)
+    {
+        $source = $this->sourceModel->findByCode($code);
+
+        if ($source === null || (int) $source['is_active'] !== 1) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
+                'Source "' . $code . '" tidak ditemukan atau tidak aktif.'
+            );
+        }
+
+        return $this->renderSource($source, $this->sourceModel->getActiveSources());
+    }
+
+    /**
+     * Render halaman per-source: tab bar semua source aktif + daftar
+     * semua watched table aktif pada source terpilih (worst-first).
+     *
+     * @param array<string,mixed>|null       $source
+     * @param array<int,array<string,mixed>> $sources
+     */
+    private function renderSource(?array $source, array $sources)
+    {
+        $tables = $this->watchedModel->getActiveTables();
+
+        $rows    = [];
+        $summary = [];
+        if ($source !== null) {
+            // Snapshot untuk source ini saja (lookup by watched_table_id).
+            $snapshots = [];
+            foreach ($this->snapshotModel->where('source_id', (int) $source['id'])->findAll() as $snapshot) {
+                $snapshots[(int) $snapshot['watched_table_id']] = $snapshot;
+            }
+
+            foreach ($tables as $table) {
+                $snapshot = $snapshots[(int) $table['id']] ?? null;
+                $status   = $snapshot['status'] ?? 'NEVER_SYNCED';
+                $rows[] = [
+                    'table'    => $table,
+                    'snapshot' => $snapshot,
+                    'status'   => $status,
+                ];
+                $summary[$status] = ($summary[$status] ?? 0) + 1;
+            }
+
+            // Urut worst-first lalu label (plan amendmen bagian 0).
+            usort($rows, function (array $a, array $b): int {
+                $cmp = $this->statusRank($b['status']) <=> $this->statusRank($a['status']);
+
+                return $cmp !== 0
+                    ? $cmp
+                    : strcasecmp((string) $a['table']['label'], (string) $b['table']['label']);
+            });
+        }
+
+        return view('pages/monitoring_source/index', [
+            'title'        => 'Monitoring | MD-Bridge',
+            'page'         => 'monitoring',
+            'sources'      => $sources,
+            'activeSource' => $source,
+            'rows'         => $rows,
+            'summary'      => $summary,
+            'relative'     => static fn (?string $dt): string => RelativeTime::format($dt),
             'flashSuccess' => session()->getFlashdata('flash_success'),
             'flashError'   => session()->getFlashdata('flash_error'),
         ]);
@@ -91,25 +151,57 @@ class MonitoringMatrix extends BaseController
     }
 
     /**
-     * "Check Now" per baris: satu tabel di semua source.
+     * "Check Sel": satu pasangan (watched_table, source).
+     * Redirect balik ke halaman source asal.
      */
-    public function checkTable($id)
+    public function checkCell($tableId, $sourceId)
     {
-        $table = $this->watchedModel->find((int) $id);
+        $table  = $this->watchedModel->find((int) $tableId);
+        $source = $this->sourceModel->find((int) $sourceId);
 
-        if ($table === null || (int) $table['is_active'] !== 1) {
+        if ($table === null || (int) $table['is_active'] !== 1 || $source === null) {
             return redirect()->to(base_url('monitoring'))
-                ->with('flash_error', 'Watched table tidak ditemukan atau tidak aktif.');
+                ->with('flash_error', 'Watched table atau source tidak ditemukan / tidak aktif.');
         }
 
+        $back = base_url('monitoring/source/' . $source['code']);
+
         try {
-            $results = (Services::freshnessChecker())->checkTable($table);
+            $result  = (Services::freshnessChecker())->check($table, $source);
+            $summary = $this->summarize([$result]);
+
+            return redirect()->to($back)
+                ->with('flash_success', 'Check "' . $table['label'] . '" di ' . $source['label'] . ' selesai: ' . $summary . '.');
+        } catch (\Throwable $e) {
+            return redirect()->to($back)
+                ->with('flash_error', 'Check gagal: ' . TableFreshnessChecker::shortError($e->getMessage()));
+        }
+    }
+
+    /**
+     * "Check Sumber Ini": semua watched table aktif pada satu source.
+     * Redirect balik ke halaman source tersebut.
+     */
+    public function checkSource(string $code)
+    {
+        $source = $this->sourceModel->findByCode($code);
+
+        if ($source === null || (int) $source['is_active'] !== 1) {
+            return redirect()->to(base_url('monitoring'))
+                ->with('flash_error', 'Source tidak ditemukan atau tidak aktif.');
+        }
+
+        $back   = base_url('monitoring/source/' . $source['code']);
+        $tables = $this->watchedModel->getActiveTables();
+
+        try {
+            $results = (Services::freshnessChecker())->runFor($tables, [$source]);
             $summary = $this->summarize($results);
 
-            return redirect()->to(base_url('monitoring'))
-                ->with('flash_success', 'Check "' . $table['label'] . '" selesai: ' . $summary . '.');
+            return redirect()->to($back)
+                ->with('flash_success', 'Check ' . $source['label'] . ' selesai: ' . $summary . '.');
         } catch (\Throwable $e) {
-            return redirect()->to(base_url('monitoring'))
+            return redirect()->to($back)
                 ->with('flash_error', 'Check gagal: ' . TableFreshnessChecker::shortError($e->getMessage()));
         }
     }
@@ -310,24 +402,34 @@ class MonitoringMatrix extends BaseController
     }
 
     /**
-     * Status terburuk berdasarkan urutan plan bagian 5:
-     * CONN_ERROR > MISSING_TABLE > NEVER_SYNCED > STALE > OK.
+     * Rank severity (plan amendmen bagian 0):
+     * CONN_ERROR > PENDING_CONFIG > MISSING_TABLE > NEVER_SYNCED > STALE > OK.
+     * Dipakai untuk sort worst-first dan menentukan status terburuk.
+     */
+    private function statusRank(string $status): int
+    {
+        $rank = [
+            'CONN_ERROR'     => 6,
+            'PENDING_CONFIG' => 5,
+            'MISSING_TABLE'  => 4,
+            'NEVER_SYNCED'   => 3,
+            'STALE'          => 2,
+            'OK'             => 1,
+        ];
+
+        return $rank[$status] ?? 0;
+    }
+
+    /**
+     * Status terburuk berdasarkan urutan plan amendmen bagian 0.
      */
     private function worstStatus(?string $current, string $candidate): string
     {
-        $rank = [
-            'CONN_ERROR'    => 5,
-            'MISSING_TABLE' => 4,
-            'NEVER_SYNCED'  => 3,
-            'STALE'         => 2,
-            'OK'            => 1,
-        ];
-
         if ($current === null) {
             return $candidate;
         }
 
-        return (($rank[$candidate] ?? 0) > ($rank[$current] ?? 0)) ? $candidate : $current;
+        return $this->statusRank($candidate) > $this->statusRank($current) ? $candidate : $current;
     }
 
     /**

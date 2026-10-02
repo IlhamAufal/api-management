@@ -14,8 +14,8 @@ use CodeIgniter\Database\BaseConnection;
  */
 class AnalyticsService
 {
-    /** Urutan tampil status di dashboard (kiri → kanan). */
-    public const STATUS_ORDER = ['OK', 'STALE', 'NEVER_SYNCED', 'MISSING_TABLE', 'CONN_ERROR'];
+    /** Urutan tampil status di dashboard (kiri → kanan, terbaik → terburuk). */
+    public const STATUS_ORDER = ['OK', 'STALE', 'NEVER_SYNCED', 'MISSING_TABLE', 'PENDING_CONFIG', 'CONN_ERROR'];
 
     private BaseConnection $db;
 

@@ -15,7 +15,8 @@ use Throwable;
  * perbandingan row_count antar source. Status murni dari umur
  * `sync_column` dibanding `stale_after_minutes` (lihat plan bagian 5).
  *
- * Urutan status: CONN_ERROR → MISSING_TABLE → NEVER_SYNCED → STALE → OK.
+ * Urutan status: PENDING_CONFIG (langkah 0) → CONN_ERROR → MISSING_TABLE
+ * → NEVER_SYNCED → STALE → OK. Lihat plan bagian 8.3 untuk PENDING_CONFIG.
  */
 class TableFreshnessChecker
 {
@@ -46,7 +47,26 @@ class TableFreshnessChecker
      */
     public function check(array $table, array $source, string $triggerType = self::TRIGGER_MANUAL): CheckResult
     {
-        $checkedAt     = $this->now();
+        $checkedAt = $this->now();
+
+        // Langkah 0 (plan bagian 8.3): connection group belum terdaftar di
+        // Config/Database.php → PENDING_CONFIG. Gagal cepat: murni baca
+        // konfigurasi, tanpa db_connect() sama sekali (tanpa timeout jaringan).
+        if (! self::hasConnectionGroup((string) $source['code'])) {
+            $result = new CheckResult(
+                CheckResult::PENDING_CONFIG,
+                (int) $table['id'],
+                (int) $source['id'],
+                $checkedAt,
+                null,
+                null,
+                'Harap tambahkan credential terlebih dahulu.'
+            );
+            $this->persist($result, $triggerType);
+
+            return $result;
+        }
+
         $status        = null;
         $rowCount      = null;
         $lastSyncedAt  = null;
@@ -229,6 +249,22 @@ class TableFreshnessChecker
         return $age > $staleAfterMinutes * 60
             ? CheckResult::STALE
             : CheckResult::OK;
+    }
+
+    /**
+     * Langkah 0 (plan bagian 8.3): apakah Config/Database.php punya
+     * connection group dengan nama persis $code? Murni baca konfigurasi —
+     * tidak melakukan percobaan koneksi jaringan.
+     */
+    public static function hasConnectionGroup(string $code): bool
+    {
+        if ($code === '' || ! self::isValidIdentifier($code)) {
+            return false;
+        }
+
+        $config = config('Database');
+
+        return property_exists($config, $code) && $config->{$code} !== null;
     }
 
     /**

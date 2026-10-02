@@ -63,15 +63,19 @@ class SourceIntrospector
     }
 
     /**
-     * Union nama tabel dari semua source aktif, terurut & tanpa duplikat.
+     * Union nama tabel, terurut & tanpa duplikat.
+     *
+     * @param string|null $sourceCode bila diisi, hanya source tersebut
+     *        yang diintrospeksi (filter UX di form registrasi —
+     *        skema watched_table tetap lintas source)
      *
      * @return string[]
      */
-    public function listTables(): array
+    public function listTables(?string $sourceCode = null): array
     {
         $tables = [];
 
-        foreach ($this->activeConnections() as $db) {
+        foreach ($this->scopedConnections($sourceCode) as $db) {
             foreach ($db->listTables() as $name) {
                 $tables[$name] = true;
             }
@@ -86,15 +90,17 @@ class SourceIntrospector
     /**
      * Kolom sebuah tabel, diambil dari source pertama yang memilikinya.
      *
-     * @return string[]|null null bila tabel tidak ada di source manapun
+     * @param string|null $sourceCode bila diisi, hanya source itu yang dicek
+     *
+     * @return string[]|null null bila tabel tidak ada di lingkup source
      */
-    public function listColumns(string $table): ?array
+    public function listColumns(string $table, ?string $sourceCode = null): ?array
     {
         if (! TableFreshnessChecker::isValidIdentifier($table)) {
             return null;
         }
 
-        foreach ($this->activeConnections() as $db) {
+        foreach ($this->scopedConnections($sourceCode) as $db) {
             if ($db->tableExists($table)) {
                 $fields = $db->getFieldNames($table);
 
@@ -103,6 +109,29 @@ class SourceIntrospector
         }
 
         return null;
+    }
+
+    /**
+     * Koneksi aktif, dibatasi satu source bila $sourceCode diisi.
+     * Kode tidak valid / tidak dikenal → lingkup kosong (union bila null/'').
+     *
+     * @return array<string,BaseConnection>
+     */
+    private function scopedConnections(?string $sourceCode): array
+    {
+        if ($sourceCode === null || $sourceCode === '') {
+            return $this->activeConnections();
+        }
+
+        if (! TableFreshnessChecker::isValidIdentifier($sourceCode)) {
+            return [];
+        }
+
+        $connections = $this->activeConnections();
+
+        return isset($connections[$sourceCode])
+            ? [$sourceCode => $connections[$sourceCode]]
+            : [];
     }
 
     /**

@@ -171,6 +171,7 @@ $workflowJson = json_encode(
   .wf-status--source  .wf-card { border-left-color: #3b82f6; }
   .wf-status--never_synced .wf-card,
   .wf-status--pending .wf-card,
+  .wf-status--pending_config .wf-card,
   .wf-status--unknown .wf-card { border-left-color: #94a3b8; }
 
   .wf-badge--success { background: #dcfce7; color: #15803d; }
@@ -262,7 +263,7 @@ $workflowJson = json_encode(
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#22c55e"></span>OK</span>
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#f59e0b"></span>STALE</span>
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#ef4444"></span>MISSING_TABLE / CONN_ERROR</span>
-    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#94a3b8"></span>NEVER_SYNCED / belum dicek</span>
+    <span class="wf-legend__item">    <span class="wf-legend__dot" style="background:#94a3b8"></span>NEVER_SYNCED / PENDING_CONFIG / belum dicek</span>
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#3b82f6"></span>Source</span>
   </div>
 </section>
@@ -289,6 +290,7 @@ $workflowJson = json_encode(
     MISSING_TABLE: { label: 'MISSING_TABLE', cls: 'wf-badge--failed' },
     CONN_ERROR:    { label: 'CONN_ERROR',    cls: 'wf-badge--failed' },
     NEVER_SYNCED:  { label: 'NEVER_SYNCED',  cls: 'wf-badge--unknown' },
+    PENDING_CONFIG:{ label: 'PENDING_CONFIG',cls: 'wf-badge--unknown' },
     PENDING:       { label: 'PENDING',       cls: 'wf-badge--unknown' },
     UNKNOWN:       { label: 'Belum dicek',   cls: 'wf-badge--unknown' }
   };

@@ -201,6 +201,29 @@ final class WatchedTableFormTest extends CIUnitTestCase
         $this->assertSame(0, (int) $row['is_active']);
     }
 
+    public function testUpdatePersistsChangesWhenTableNameUnchanged()
+    {
+        // Regresi: rule is_unique memakai {id} — tanpa key 'id' di data,
+        // update gagal diam-diam (CI 4.1.9).
+        $id = $this->insertWatchedTable(['label' => 'Lama']);
+
+        $result = $this->withSession($this->authSession())->post('watched-tables/update/' . $id, [
+            'table_name'          => 'fx_orders',
+            'label'               => 'Baru',
+            'sync_column'         => 'synced_at',
+            'stale_after_minutes' => '720',
+            'is_active'           => '1',
+        ]);
+
+        $result->assertRedirect();
+        $result->assertSessionHas('flash_success');
+
+        $row = $this->fixtureDb->table('watched_tables')
+            ->where('id', $id)->get()->getRowArray();
+        $this->assertSame('Baru', $row['label']);
+        $this->assertSame(720, (int) $row['stale_after_minutes']);
+    }
+
     public function testSoftDeleteKeepsHistoryButDeactivates()
     {
         $id        = $this->insertWatchedTable();
@@ -233,5 +256,79 @@ final class WatchedTableFormTest extends CIUnitTestCase
         $this->assertIsArray($payload);
         $this->assertContains('synced_at', $payload['columns']);
         $this->assertContains('updated_at', $payload['columns']);
+    }
+
+    // ------------------------------------------------------------------
+    // Filter database (introspeksi per source) — UX saja, bukan skema
+    // ------------------------------------------------------------------
+
+    public function testCreateFormShowsDatabaseFilterOptions()
+    {
+        $result = $this->withSession($this->authSession())->get('watched-tables/new');
+
+        $result->assertOK();
+        $this->assertBodySee('Semua source', $result);
+        $this->assertBodySee('NPD (RDS)', $result);
+        $this->assertBodySee('SAP', $result);
+    }
+
+    public function testCreateFormScopedToUnknownSourceShowsEmptyTableList()
+    {
+        $result = $this->withSession($this->authSession())
+            ->get('watched-tables/new?source=zona_nggakada');
+
+        $result->assertOK();
+        // Source tidak dikenal → lingkup introspeksi kosong.
+        $this->assertBodyNotSee('fx_orders', $result);
+    }
+
+    public function testTablesEndpointReturnsFixtureTablesForUnionAndScope()
+    {
+        // Nama fisik ber-DBPrefix (mis. db_fx_orders) — cocokkan suffix.
+        $hasFxOrders = static function (array $tables): bool {
+            foreach ($tables as $name) {
+                if (str_ends_with((string) $name, 'fx_orders')) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        $union = $this->withSession($this->authSession())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get('watched-tables/tables');
+
+        $union->assertOK();
+        $payload = json_decode($union->response()->getBody(), true);
+        $this->assertIsArray($payload);
+        $this->assertTrue($hasFxOrders($payload['tables']), 'Union seharusnya memuat fx_orders.');
+
+        $scoped = $this->withSession($this->authSession())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get('watched-tables/tables?source=npd');
+
+        $scoped->assertOK();
+        $payload = json_decode($scoped->response()->getBody(), true);
+        $this->assertTrue($hasFxOrders($payload['tables']), 'Scope npd seharusnya memuat fx_orders.');
+
+        $unknown = $this->withSession($this->authSession())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get('watched-tables/tables?source=zona_nggakada');
+
+        $unknown->assertOK();
+        $payload = json_decode($unknown->response()->getBody(), true);
+        $this->assertSame([], $payload['tables']);
+    }
+
+    public function testColumnsEndpointScopesToSource()
+    {
+        $result = $this->withSession($this->authSession())
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get('watched-tables/columns?table=fx_orders&source=zona_nggakada');
+
+        $result->assertOK();
+        $payload = json_decode($result->response()->getBody(), true);
+        $this->assertSame([], $payload['columns']);
     }
 }

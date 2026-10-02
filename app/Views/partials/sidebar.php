@@ -25,6 +25,7 @@
             ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => base_url('/'), 'icon' => 'grid'],
             ['key' => 'monitoring', 'label' => 'Monitoring', 'href' => base_url('monitoring'), 'icon' => 'database'],
             ['key' => 'watched_tables', 'label' => 'Watched Tables', 'href' => base_url('watched-tables'), 'icon' => 'list'],
+            ['key' => 'databases', 'label' => 'Databases', 'href' => base_url('databases'), 'icon' => 'server'],
             ['key' => 'logs', 'label' => 'Execution Logs', 'href' => base_url('logs'), 'icon' => 'activity'],
         ];
         foreach ($navigation as $item):
@@ -37,7 +38,9 @@
               <?php elseif ($item['icon'] === 'database'): ?>
                 <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C7.58 3 4 4.34 4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6c0-1.66-3.58-3-8-3Zm0 1.5c3.93 0 6.5 1.13 6.5 1.5S15.93 7.5 12 7.5 5.5 6.37 5.5 6 8.07 4.5 12 4.5Zm0 15c-3.93 0-6.5-1.13-6.5-1.5v-2.09C7 16.61 9.36 17 12 17s5-.39 6.5-1.09V18c0 .37-2.57 1.5-6.5 1.5Zm0-4c-3.93 0-6.5-1.13-6.5-1.5v-2.09C7 12.61 9.36 13 12 13s5-.39 6.5-1.09V14c0 .37-2.57 1.5-6.5 1.5Zm0-4C8.07 11.5 5.5 10.37 5.5 10V7.91C7 8.61 9.36 9 12 9s5-.39 6.5-1.09V10c0 .37-2.57 1.5-6.5 1.5Z" fill="currentColor"/></svg>
               <?php elseif ($item['icon'] === 'list'): ?>
-                <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 5.75A.75.75 0 0 1 5.75 5h12.5a.75.75 0 0 1 0 1.5H5.75A.75.75 0 0 1 5 5.75ZM5 11.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H5.75a.75.75 0 0 1-.75-.75ZM5 17.75a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H5.75a.75.75 0 0 1-.75-.75Z" fill="currentColor"/></svg>
+                <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 5.75A.75.75 0 0 1 5.75 5h12.5a.75.75 0 0 1 0 1.5H5.75A.75.75 0 0 1 5 5.75ZM5 11.75A.75.75 0 0 1 5.75 11h12.5a.75.75 0 0 1 0 1.5H5.75A.75.75 0 0 1 5 11.75ZM5 17.75A.75.75 0 0 1 5.75 17h12.5a.75.75 0 0 1 0 1.5H5.75A.75.75 0 0 1 5 17.75Z" fill="currentColor"/></svg>
+              <?php elseif ($item['icon'] === 'server'): ?>
+                <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" fill="currentColor" d="M6 4.75H18A1.25 1.25 0 0 1 19.25 6V9A1.25 1.25 0 0 1 18 10.25H6A1.25 1.25 0 0 1 4.75 9V6A1.25 1.25 0 0 1 6 4.75ZM7 6.7H11.2V8.4H7V6.7ZM16.6 7.5A0.85 0.85 0 1 1 14.9 7.5A0.85 0.85 0 1 1 16.6 7.5ZM6 13.75H18A1.25 1.25 0 0 1 19.25 15V18A1.25 1.25 0 0 1 18 19.25H6A1.25 1.25 0 0 1 4.75 18V15A1.25 1.25 0 0 1 6 13.75ZM7 15.75H11.2V17.45H7V15.75ZM16.6 16.5A0.85 0.85 0 1 1 14.9 16.5A0.85 0.85 0 1 1 16.6 16.5Z" /></svg>
               <?php else: ?>
                 <svg class="<?= $active ? 'menu-item-icon-active' : 'menu-item-icon-inactive' ?>" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.75 17.5a.75.75 0 0 1-.75-.75v-9.5a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 .75.75v9.5a.75.75 0 0 1-.75.75H4.75ZM6 15.5h2.25v-3H6v3Zm4 0h2.25v-6H10v6Zm4 0h2.25v-4.5H14v4.5Z" fill="currentColor"/></svg>
               <?php endif; ?>

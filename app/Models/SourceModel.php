@@ -18,7 +18,7 @@ class SourceModel extends Model
 
     protected $validationRules = [
         'id'       => 'permit_empty|is_natural_no_zero',
-        'code'     => 'required|regex_match[/^[a-z][a-z0-9_]*$]|max_length[50]|is_unique[sources.code,id,{id}]',
+        'code'     => 'required|regex_match[/^[a-z][a-z0-9_]*$/]|max_length[50]|is_unique[sources.code,id,{id}]',
         'label'    => 'required|string|max_length[100]',
         'is_active' => 'required|in_list[0,1]',
     ];

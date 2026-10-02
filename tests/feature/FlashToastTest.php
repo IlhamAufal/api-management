@@ -28,24 +28,25 @@ final class FlashToastTest extends CIUnitTestCase
         $this->setUpMonitoringFixture();
     }
 
-    public function testCheckTableFlashSuccessRendersAsToastNotBanner()
+    public function testCheckCellFlashSuccessRendersAsToastNotBanner()
     {
-        $id = $this->insertWatchedTable();
+        $id  = $this->insertWatchedTable();
+        $npd = $this->sourceId('npd');
 
         $post = $this->withSession($this->authSession())
-            ->post('monitoring/check-table/' . $id);
+            ->post('monitoring/check-cell/' . $id . '/' . $npd);
         $post->assertRedirect();
         $post->assertSessionHas('flash_success');
 
         // Bawa $_SESSION hasil request POST (berisi flash + auth)
         // ke request GET berikutnya — meniru lifecycle redirect CI.
         $this->withSession();
-        $result = $this->get('monitoring');
+        $result = $this->get('monitoring/source/npd');
 
         $result->assertOK();
         // Pesan muncul di bootstrap toast (json_encode di dalam script).
         // Kutip label ikut ter-escape oleh json_encode: \"FX Orders\".
-        $this->assertBodySee('Check \"FX Orders\" selesai: 2 sel (', $result);
+        $this->assertBodySee('Check \"FX Orders\" di NPD (RDS) selesai: 1 sel (', $result);
         // Banner inline lama tidak lagi dirender.
         $this->assertBodyNotSee(self::BANNER, $result);
     }

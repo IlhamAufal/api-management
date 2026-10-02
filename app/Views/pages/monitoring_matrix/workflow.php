@@ -12,12 +12,12 @@
     <div>
       <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Alur Workflow</h1>
       <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
-        Alur data-freshness: source &rarr; checker &rarr; watched table &rarr; matrix. Warna kartu mengikuti status terburuk dari seluruh pasangan (tabel, source).
+        Alur data-freshness: source &rarr; checker &rarr; watched table &rarr; dashboard monitoring. Warna kartu mengikuti status terburuk dari seluruh pasangan (tabel, source).
       </p>
     </div>
     <a href="<?= base_url('monitoring') ?>" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-brand-300 hover:text-brand-500 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400">
       <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>
-      Kembali ke Matrix
+      Kembali ke Monitoring
     </a>
   </div>
 
@@ -39,7 +39,7 @@
 
   <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
     <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-    Status dihitung dari umur kolom sync dibanding ambang stale per tabel. Data berasal dari snapshot terakhir; jalankan "Check All" di halaman matrix untuk memperbaruinya.
+    Status dihitung dari umur kolom sync dibanding ambang stale per tabel. Data berasal dari snapshot terakhir; jalankan "Check All" di halaman Monitoring untuk memperbaruinya.
   </p>
 </div>
 <?= $this->endSection() ?>

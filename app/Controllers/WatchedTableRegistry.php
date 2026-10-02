@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\Monitoring\SourceIntrospector;
 use App\Libraries\Monitoring\TableFreshnessChecker;
+use App\Models\SourceModel;
 use App\Models\WatchedTableModel;
 use Config\Services;
 
@@ -119,7 +120,10 @@ class WatchedTableRegistry extends BaseController
                 ->with('validation_errors', ['table_name' => $introspectionError]);
         }
 
-        $this->watchedModel->update((int) $id, $post);
+        // {id} pada rule is_unique hanya ter-replace bila data memuat
+        // key 'id' (CI 4.1.9) — tanpa itu edit dengan nama tidak berubah
+        // gagal diam-diam. 'id' tidak di allowedFields, jadi tidak ikut SET.
+        $this->watchedModel->update((int) $id, $post + ['id' => (int) $id]);
 
         $table = $this->watchedModel->find((int) $id);
         if ($table !== null && (int) $table['is_active'] === 1) {
@@ -173,15 +177,32 @@ class WatchedTableRegistry extends BaseController
     }
 
     /**
-     * AJAX: kolom sebuah tabel dari source aktif (untuk dropdown sync_column).
+     * AJAX: nama tabel dari lingkup source tertentu (untuk dropdown
+     * Nama Tabel ketika filter database diubah).
+     */
+    public function tables()
+    {
+        $source = (string) $this->request->getGet('source');
+
+        return $this->response->setJSON([
+            'source' => $source,
+            'tables' => $this->introspector->listTables($source !== '' ? $source : null),
+        ]);
+    }
+
+    /**
+     * AJAX: kolom sebuah tabel (untuk dropdown sync_column).
+     * Parameter `source` opsional — membatasi introspeksi ke satu database.
      */
     public function columns()
     {
         $tableName = (string) $this->request->getGet('table');
-        $columns   = $this->introspector->listColumns($tableName);
+        $source    = (string) $this->request->getGet('source');
+        $columns   = $this->introspector->listColumns($tableName, $source !== '' ? $source : null);
 
         return $this->response->setJSON([
             'table'   => $tableName,
+            'source'  => $source,
             'columns' => $columns ?? [],
         ]);
     }
@@ -194,13 +215,21 @@ class WatchedTableRegistry extends BaseController
             $oldInput = (array) ($oldFlash['post'] ?? ($oldFlash['old'] ?? []));
         }
 
+        // Filter database bersifat UX saja (tidak disimpan ke watched_tables):
+        // membatasi daftar tabel/kolom saat mengisi form.
+        $selectedSource = (string) ($oldInput['source']
+            ?? $this->request->getGet('source')
+            ?? '');
+
         return view('pages/watched_tables/form', [
             'title'      => ($table !== null ? 'Edit' : 'Tambah') . ' Watched Table | MD-Bridge',
             'page'       => 'watched_tables',
             'table'      => $table,
             'errors'     => (array) (session()->getFlashdata('validation_errors') ?: []),
             'oldInput'   => $oldInput,
-            'allTables'  => $this->introspector->listTables(),
+            'sources'    => (new SourceModel())->getActiveSources(),
+            'selectedSource' => $selectedSource,
+            'allTables'  => $this->introspector->listTables($selectedSource !== '' ? $selectedSource : null),
             'formAction' => $table !== null
                 ? base_url('watched-tables/update/' . (int) $table['id'])
                 : base_url('watched-tables'),
@@ -224,7 +253,10 @@ class WatchedTableRegistry extends BaseController
     {
         $id = (string) ($id ?? '');
 
+        // Instance validation shared — reset dulu supaya error validasi
+        // sebelumnya tidak membuat run() selanjutnya false (lihat DatabaseRegistry).
         $this->formValidator = Services::validation();
+        $this->formValidator->reset();
         $this->formValidator->setRules(
             [
                 'table_name'          => "required|regex_match[/^[a-z][a-z0-9_]*$/]|max_length[100]|is_unique[watched_tables.table_name,id,{$id}]",

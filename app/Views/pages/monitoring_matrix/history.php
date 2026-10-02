@@ -20,7 +20,7 @@
     </div>
     <a href="<?= base_url('monitoring') ?>" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
       <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-      Kembali ke Matrix
+      Kembali ke Monitoring
     </a>
   </div>
 
@@ -104,7 +104,7 @@
                   <?= $statusFilter !== null ? 'Tidak ada riwayat dengan status ini' : 'Belum ada riwayat check' ?>
                 </p>
                 <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  <?= $statusFilter !== null ? 'Coba ganti atau reset filter status.' : 'Tekan "Check Now" di matrix untuk mengisi riwayat.' ?>
+                  <?= $statusFilter !== null ? 'Coba ganti atau reset filter status.' : 'Tekan tombol Check di halaman Monitoring untuk mengisi riwayat.' ?>
                 </p>
               </td>
             </tr>

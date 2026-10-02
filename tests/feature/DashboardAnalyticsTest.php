@@ -33,6 +33,7 @@ final class DashboardAnalyticsTest extends CIUnitTestCase
 
         // Snapshot kosong: semua status 0 + ajakan Check All.
         $this->assertBodySee('data-status="OK" data-count="0"', $result);
+        $this->assertBodySee('data-status="PENDING_CONFIG" data-count="0"', $result);
         $this->assertBodySee('data-status="CONN_ERROR" data-count="0"', $result);
         $this->assertBodySee('Belum ada hasil check', $result);
 

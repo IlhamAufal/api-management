@@ -340,4 +340,85 @@ final class TableFreshnessCheckerTest extends CIUnitTestCase
         $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $sql);
         $this->assertSame(7, substr_count($sql, '?'));
     }
+
+    // ------------------------------------------------------------------
+    // Status: PENDING_CONFIG (plan bagian 8.3 & 8.5)
+    // ------------------------------------------------------------------
+
+    public function testPendingConfigWhenConnectionGroupNotRegistered()
+    {
+        $resolverCalled = false;
+        $resolver       = static function () use (&$resolverCalled): BaseConnection {
+            $resolverCalled = true;
+            throw new RuntimeException('Resolver tidak boleh dipanggil sebelum group terdaftar.');
+        };
+
+        $checker = $this->makeChecker($resolver);
+        $result  = $checker->check($this->table(), $this->source(['code' => 'belum_ada_group']));
+
+        $this->assertSame(CheckResult::PENDING_CONFIG, $result->status);
+        $this->assertSame('Harap tambahkan credential terlebih dahulu.', $result->errorMessage);
+        $this->assertNull($result->rowCount);
+        $this->assertNull($result->lastSyncedAt);
+        $this->assertFalse($resolverCalled, 'Resolver/koneksi tidak boleh dipanggil sama sekali.');
+
+        // Gagal cepat bukan berarti gagal persist — snapshot & riwayat tetap terisi.
+        $this->assertCount(1, $checker->snapshots);
+        $this->assertCount(1, $checker->history);
+        $this->assertSame(CheckResult::PENDING_CONFIG, $checker->snapshots[0]['status']);
+    }
+
+    public function testPendingConfigIsDistinctFromConnError()
+    {
+        $pendingChecker = $this->makeChecker($this->resolverReturning($this->fixtureDb));
+        $pending        = $pendingChecker->check(
+            $this->table(),
+            $this->source(['code' => 'belum_ada_group'])
+        );
+
+        $connChecker = $this->makeChecker(static function (string $code): BaseConnection {
+            throw new RuntimeException('Gagal koneksi ke host ' . $code . ' (access denied).');
+        });
+        $conn = $connChecker->check($this->table(), $this->source());
+
+        $this->assertSame(CheckResult::PENDING_CONFIG, $pending->status);
+        $this->assertSame(CheckResult::CONN_ERROR, $conn->status);
+        $this->assertNotSame($pending->status, $conn->status);
+        $this->assertStringContainsString('credential', (string) $pending->errorMessage);
+        $this->assertStringContainsString('Gagal koneksi', (string) $conn->errorMessage);
+    }
+
+    public function testRunForMixedPendingAndOkDoesNotStopOtherSources()
+    {
+        $resolvedCodes = [];
+        $resolver      = function (string $code) use (&$resolvedCodes): BaseConnection {
+            $resolvedCodes[] = $code;
+
+            return $this->fixtureDb;
+        };
+        $checker = $this->makeChecker($resolver);
+
+        $results = $checker->runFor(
+            [$this->table()],
+            [
+                $this->source(['id' => 7, 'code' => 'belum_ada_group']),
+                $this->source(['id' => 8, 'code' => 'tests']),
+            ]
+        );
+
+        $this->assertCount(2, $results);
+        $this->assertSame(CheckResult::PENDING_CONFIG, $results[0]->status);
+        $this->assertSame(CheckResult::OK, $results[1]->status);
+        $this->assertSame(
+            ['tests'],
+            $resolvedCodes,
+            'Source pending dilewati tanpa koneksi; source terkonfigurasi tetap dicek.'
+        );
+        $this->assertCount(2, $checker->snapshots);
+    }
+
+    public function testAllStatusesIncludesPendingConfig()
+    {
+        $this->assertContains(CheckResult::PENDING_CONFIG, CheckResult::ALL_STATUSES);
+    }
 }

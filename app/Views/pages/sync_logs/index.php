@@ -14,7 +14,7 @@
     </div>
     <a href="<?= base_url('monitoring') ?>" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
       <i class="fa-solid fa-table-cells" aria-hidden="true"></i>
-      Buka Matrix
+      Buka Monitoring
     </a>
   </div>
 
