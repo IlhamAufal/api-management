@@ -164,13 +164,14 @@ $workflowJson = json_encode(
   .dark .wf-card__meta b { color: #cbd5e1; }
 
   /* Status accents (applied to the drawflow node wrapper) */
-  .wf-status--success .wf-card { border-left-color: #22c55e; }
-  .wf-status--failed  .wf-card { border-left-color: #ef4444; }
-  .wf-status--running .wf-card,
-  .wf-status--warning .wf-card { border-left-color: #f59e0b; }
+  .wf-status--ok .wf-card { border-left-color: #22c55e; }
+  .wf-status--missing_table .wf-card,
+  .wf-status--conn_error .wf-card { border-left-color: #ef4444; }
+  .wf-status--stale .wf-card { border-left-color: #f59e0b; }
   .wf-status--source  .wf-card { border-left-color: #3b82f6; }
-  .wf-status--unknown .wf-card,
-  .wf-status--not_connected .wf-card { border-left-color: #94a3b8; }
+  .wf-status--never_synced .wf-card,
+  .wf-status--pending .wf-card,
+  .wf-status--unknown .wf-card { border-left-color: #94a3b8; }
 
   .wf-badge--success { background: #dcfce7; color: #15803d; }
   .wf-badge--failed  { background: #fee2e2; color: #b91c1c; }
@@ -258,10 +259,11 @@ $workflowJson = json_encode(
   </div>
 
   <div class="wf-legend">
-    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#22c55e"></span>Success</span>
-    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#f59e0b"></span>Running / Warning</span>
-    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#ef4444"></span>Failed</span>
-    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#94a3b8"></span>No data / Not connected</span>
+    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#22c55e"></span>OK</span>
+    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#f59e0b"></span>STALE</span>
+    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#ef4444"></span>MISSING_TABLE / CONN_ERROR</span>
+    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#94a3b8"></span>NEVER_SYNCED / belum dicek</span>
+    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#3b82f6"></span>Source</span>
   </div>
 </section>
 
@@ -282,12 +284,13 @@ $workflowJson = json_encode(
   };
 
   var STATUS = {
-    SUCCESS:       { label: 'Success',       cls: 'wf-badge--success' },
-    FAILED:        { label: 'Failed',        cls: 'wf-badge--failed' },
-    RUNNING:       { label: 'Running',       cls: 'wf-badge--running' },
-    WARNING:       { label: 'Warning',       cls: 'wf-badge--warning' },
-    UNKNOWN:       { label: 'No cron data',  cls: 'wf-badge--unknown' },
-    NOT_CONNECTED: { label: 'Not connected', cls: 'wf-badge--not_connected' }
+    OK:            { label: 'OK',            cls: 'wf-badge--success' },
+    STALE:         { label: 'STALE',         cls: 'wf-badge--warning' },
+    MISSING_TABLE: { label: 'MISSING_TABLE', cls: 'wf-badge--failed' },
+    CONN_ERROR:    { label: 'CONN_ERROR',    cls: 'wf-badge--failed' },
+    NEVER_SYNCED:  { label: 'NEVER_SYNCED',  cls: 'wf-badge--unknown' },
+    PENDING:       { label: 'PENDING',       cls: 'wf-badge--unknown' },
+    UNKNOWN:       { label: 'Belum dicek',   cls: 'wf-badge--unknown' }
   };
 
   function esc(value) {

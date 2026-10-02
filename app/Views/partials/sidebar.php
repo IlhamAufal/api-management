@@ -24,7 +24,7 @@
         $navigation = [
             ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => base_url('/'), 'icon' => 'grid'],
             ['key' => 'monitoring', 'label' => 'Monitoring', 'href' => base_url('monitoring'), 'icon' => 'database'],
-            ['key' => 'tasks', 'label' => 'API Task Registry', 'href' => base_url('tasks'), 'icon' => 'list'],
+            ['key' => 'watched_tables', 'label' => 'Watched Tables', 'href' => base_url('watched-tables'), 'icon' => 'list'],
             ['key' => 'logs', 'label' => 'Execution Logs', 'href' => base_url('logs'), 'icon' => 'activity'],
         ];
         foreach ($navigation as $item):

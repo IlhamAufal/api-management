@@ -1,10 +1,17 @@
 <?php
-$toastMessage = session()->getFlashdata('message')
+// Key flash utama aplikasi: flash_success / flash_error (redirect()->with()).
+$flashError   = session()->getFlashdata('flash_error');
+$flashSuccess = session()->getFlashdata('flash_success');
+$toastMessage = $flashError
+    ?? $flashSuccess
+    ?? session()->getFlashdata('message')
     ?? session()->getFlashdata('auth_success')
     ?? session()->getFlashdata('success')
     ?? session()->getFlashdata('auth_error')
     ?? session()->getFlashdata('error');
-$toastType = (session()->getFlashdata('auth_error') || session()->getFlashdata('error')) ? 'error' : 'success';
+$toastType = ($flashError !== null
+    || session()->getFlashdata('auth_error') !== null
+    || session()->getFlashdata('error') !== null) ? 'error' : 'success';
 ?>
 
 <div

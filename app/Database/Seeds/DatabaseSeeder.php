@@ -9,12 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(UsersSeeder::class);
-        $this->call(SapMaterialMasterSeeder::class);
-        $this->call(SapCustomerMasterSeeder::class);
-        $this->call(SapCustomerMaterialSeeder::class);
-        $this->call(SapCustomerSalesAreaSeeder::class);
-        $this->call(SysSyncLogsSeeder::class);
-        $this->call(MonitoringAppsSeeder::class);
-        $this->call(MonitoringAppTablesSeeder::class);
+        $this->call(SourcesSeeder::class);
+        $this->call(WatchedTablesSeeder::class);
     }
 }

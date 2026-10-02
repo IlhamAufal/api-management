@@ -1,149 +1,167 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
-<?php
-$formatDate = static function ($value) {
-    if (!$value) {
-        return 'Belum ada data';
-    }
-
-    $timestamp = strtotime($value);
-    return $timestamp ? date('d M Y, H:i', $timestamp) : $value;
-};
-$maxDailyRuns = 1;
-foreach ($dailyStats as $day) {
-    $maxDailyRuns = max($maxDailyRuns, (int) $day['total']);
-}
-?>
 <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
   <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p class="text-sm font-semibold tracking-wide text-brand-500">MD-Bridge Analytics</p>
-      <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Dashboard Integrasi</h1>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ringkasan performa, tren eksekusi, dan anomali pipeline.</p>
+      <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Dashboard</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ringkasan performa integrasi.</p>
     </div>
     <a href="<?= base_url('monitoring') ?>" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">Buka Monitoring</a>
   </div>
 
-  <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 md:gap-6">
-    <div class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-      <div class="min-w-0">
-        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Success Rate</p>
-        <p class="mt-0.5 text-xl font-bold text-gray-800 dark:text-white/90"><?= number_format($successRate, 1) ?>%</p>
-        <p class="mt-0.5 text-xs text-gray-400"><?= number_format((int) $summary['successful_runs']) ?> dari <?= number_format((int) $summary['completed_runs']) ?> eksekusi selesai</p>
-      </div>
+  <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Source Aktif</p>
+      <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= count($sources) ?></p>
+      <p class="mt-1 text-xs text-gray-400"><?= esc(implode(', ', array_column($sources, 'code')) ?: '—') ?></p>
     </div>
-    <div class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3C7.58 3 4 4.34 4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6c0-1.66-3.58-3-8-3Zm0 4.5c-3.93 0-6.5-1.13-6.5-1.5S8.07 4.5 12 4.5 18.5 5.63 18.5 6 15.93 7.5 12 7.5Zm0 8c-3.93 0-6.5-1.13-6.5-1.5v-2.09C7 12.61 9.36 13 12 13s5-.39 6.5-1.09V14c0 .37-2.57 1.5-6.5 1.5Zm0 4c-3.93 0-6.5-1.13-6.5-1.5v-2.09C7 16.61 9.36 17 12 17s5-.39 6.5-1.09V18c0 .37-2.57 1.5-6.5 1.5Z" fill="currentColor"/></svg>
-      </span>
-      <div class="min-w-0">
-        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Records Written</p>
-        <p class="mt-0.5 text-xl font-bold text-gray-800 dark:text-white/90"><?= number_format((int) $summary['records_written']) ?></p>
-        <p class="mt-0.5 text-xs text-gray-400">Akumulasi telemetry lokal</p>
-      </div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Watched Tables</p>
+      <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= count($tables) ?></p>
+      <p class="mt-1 text-xs text-gray-400">tabel dipantau</p>
     </div>
-    <div class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M4 10h16M10 10v10" stroke="currentColor" stroke-width="1.8"/></svg>
-      </span>
-      <div class="min-w-0">
-        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Tasks</p>
-        <p class="mt-0.5 text-xl font-bold text-gray-800 dark:text-white/90"><?= number_format((int) $activeTasks) ?></p>
-        <p class="mt-0.5 text-xs text-gray-400"><?= number_format((int) $activeApps) ?> aplikasi terdaftar</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9v4m0 3.5h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-      <div class="min-w-0">
-        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Failed Runs</p>
-        <p class="mt-0.5 text-xl font-bold <?= (int) $summary['failed_runs'] > 0 ? 'text-error-600 dark:text-error-400' : 'text-gray-800 dark:text-white/90' ?>"><?= number_format((int) $summary['failed_runs']) ?></p>
-        <p class="mt-0.5 text-xs text-gray-400">Durasi rata-rata <?= number_format((float) $summary['average_duration'], 2) ?> detik</p>
-      </div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Sel Pemantauan</p>
+      <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= count($tables) * count($sources) ?></p>
+      <p class="mt-1 text-xs text-gray-400">tabel × source</p>
     </div>
   </section>
 
-  <div class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
-    <div class="xl:col-span-2">
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Tren Eksekusi 7 Hari</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Success, warning, dan failed berdasarkan log eksekusi.</p>
-      <section class="mt-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="flex items-start justify-between gap-4">
-          <span class="text-sm text-gray-500 dark:text-gray-400">Distribusi status harian</span>
-          <span class="text-xs text-gray-400">Total <?= number_format((int) $summary['total_runs']) ?> runs</span>
+  <?php
+    // Warna segmen tren — konsisten dengan badge_status.php.
+    $trendColors = [
+      'OK'            => 'bg-success-500',
+      'STALE'         => 'bg-warning-500',
+      'NEVER_SYNCED'  => 'bg-gray-400',
+      'MISSING_TABLE' => 'bg-error-400',
+      'CONN_ERROR'    => 'bg-error-500',
+    ];
+    $maxTrend      = 0;
+    $trendHasData  = false;
+    foreach ($trend as $day) {
+      $maxTrend     = max($maxTrend, (int) $day['total']);
+      $trendHasData = $trendHasData || (int) $day['total'] > 0;
+    }
+    $snapshotTotal = array_sum($statusBreakdown);
+  ?>
+
+  <!-- Status sel terkini (table_snapshots) -->
+  <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="flex items-baseline justify-between gap-4">
+      <div>
+        <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Status Sel Terkini</h2>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Distribusi status dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800">table_snapshots</code> (seluruh pasangan tabel &times; source).</p>
+      </div>
+      <a href="<?= base_url('monitoring') ?>" class="shrink-0 text-sm font-semibold text-brand-500 hover:underline">Buka Monitoring</a>
+    </div>
+
+    <div class="mt-4 flex flex-wrap gap-3">
+      <?php foreach ($statusBreakdown as $status => $count): ?>
+        <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-white/[0.02]" data-status="<?= esc($status) ?>" data-count="<?= (int) $count ?>">
+          <?= view('components/badge_status', ['status' => $status]) ?>
+          <span class="text-xl font-bold text-gray-800 dark:text-white/90"><?= (int) $count ?></span>
         </div>
-        <div class="mt-6 grid grid-cols-7 items-end gap-2 sm:gap-4">
-          <?php foreach ($dailyStats as $day): ?>
+      <?php endforeach; ?>
+    </div>
+
+    <?php if ($snapshotTotal === 0): ?>
+      <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+        Belum ada hasil check — jalankan <b>Check All</b> di halaman Monitoring untuk mengisi status.
+      </p>
+    <?php endif; ?>
+  </section>
+
+  <!-- Tren 7 hari + Health per source -->
+  <section class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+      <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Tren Check (7 Hari)</h2>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Jumlah eksekusi check per hari dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800">check_history</code>, ditumpuk per status.</p>
+
+      <?php if (! $trendHasData): ?>
+        <div class="mt-6 rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700">
+          <i class="fa-solid fa-chart-column text-xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+          <p class="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">Belum ada check dalam 7 hari terakhir.</p>
+        </div>
+      <?php else: ?>
+        <div class="mt-6 flex h-48 gap-2">
+          <?php foreach ($trend as $day): ?>
             <?php
-            $successHeight = max(0, round(((int) $day['success'] / $maxDailyRuns) * 150));
-            $warningHeight = max(0, round(((int) $day['warning'] / $maxDailyRuns) * 150));
-            $failedHeight = max(0, round(((int) $day['failed'] / $maxDailyRuns) * 150));
+              $breakdownParts = [];
+              foreach (\App\Libraries\Monitoring\AnalyticsService::STATUS_ORDER as $st) {
+                if ((int) ($day['byStatus'][$st] ?? 0) > 0) {
+                  $breakdownParts[] = $st . ':' . (int) $day['byStatus'][$st];
+                }
+              }
+              $barHeight = $maxTrend > 0 ? (int) round((int) $day['total'] / $maxTrend * 100) : 0;
             ?>
-            <div class="flex flex-col items-center">
-              <div class="flex h-40 w-full max-w-10 flex-col justify-end overflow-hidden rounded-t-lg bg-gray-100 dark:bg-gray-800" title="<?= esc($day['date'], 'attr') ?>: <?= (int) $day['total'] ?> runs">
-                <?php if ($successHeight > 0): ?><div class="bg-success-500" style="height: <?= $successHeight ?>px"></div><?php endif; ?>
-                <?php if ($warningHeight > 0): ?><div class="bg-warning-500" style="height: <?= $warningHeight ?>px"></div><?php endif; ?>
-                <?php if ($failedHeight > 0): ?><div class="bg-error-500" style="height: <?= $failedHeight ?>px"></div><?php endif; ?>
+            <div class="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" data-trend-day="<?= esc($day['date']) ?>" data-total="<?= (int) $day['total'] ?>" data-breakdown="<?= esc(implode(',', $breakdownParts)) ?>">
+              <div class="flex w-full flex-1 items-end justify-center">
+                <?php if ((int) $day['total'] > 0): ?>
+                  <div class="flex w-full max-w-[40px] flex-col-reverse overflow-hidden rounded-t-md" style="height: <?= $barHeight ?>%" role="img" aria-label="<?= (int) $day['total'] ?> check">
+                    <?php foreach (\App\Libraries\Monitoring\AnalyticsService::STATUS_ORDER as $st): ?>
+                      <?php $cnt = (int) ($day['byStatus'][$st] ?? 0); ?>
+                      <?php if ($cnt > 0): ?>
+                        <div class="<?= $trendColors[$st] ?? 'bg-gray-400' ?>" style="flex: <?= $cnt ?>" title="<?= esc($st) ?>: <?= $cnt ?>"></div>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                  </div>
+                <?php else: ?>
+                  <div class="h-1 w-full max-w-[40px] rounded-sm bg-gray-200 dark:bg-gray-700"></div>
+                <?php endif; ?>
               </div>
-              <span class="mt-2 text-xs text-gray-500 dark:text-gray-400"><?= esc($day['label']) ?></span>
-              <span class="text-[11px] text-gray-400"><?= (int) $day['total'] ?></span>
+              <span class="truncate text-[10px] text-gray-400"><?= esc($day['label']) ?></span>
             </div>
           <?php endforeach; ?>
         </div>
-        <div class="mt-5 flex flex-wrap gap-4 border-t border-gray-100 pt-4 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-          <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-success-500"></span>Success</span>
-          <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-warning-500"></span>Warning</span>
-          <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-error-500"></span>Failed</span>
+
+        <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+          <?php foreach (\App\Libraries\Monitoring\AnalyticsService::STATUS_ORDER as $st): ?>
+            <span class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+              <span class="h-2.5 w-2.5 rounded-full <?= $trendColors[$st] ?? 'bg-gray-400' ?>"></span>
+              <?= esc($st) ?>
+            </span>
+          <?php endforeach; ?>
         </div>
-      </section>
+      <?php endif; ?>
     </div>
 
-    <div>
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Analisis Cepat</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ringkasan kondisi pipeline saat ini.</p>
-      <section class="mt-3 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="space-y-4">
-          <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800">
-            <p class="text-xs text-gray-400">Eksekusi Terakhir</p>
-            <p class="mt-1 font-semibold text-gray-800 dark:text-white/90"><?= esc($latestRun['task_code'] ?? 'Belum ada') ?></p>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400"><?= esc($formatDate($latestRun['executed_at'] ?? null)) ?></p>
-          </div>
-          <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800">
-            <p class="text-xs text-gray-400">Running Sekarang</p>
-            <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= number_format((int) $summary['running_runs']) ?></p>
-          </div>
-          <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800">
-            <p class="text-xs text-gray-400">Rekomendasi</p>
-            <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300"><?= (int) $summary['failed_runs'] > 0 ? 'Periksa riwayat kegagalan pada halaman Monitoring.' : 'Tidak ada kegagalan tercatat. Pantau freshness cron secara berkala.' ?></p>
-          </div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+      <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Health per Source</h2>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sel OK dibanding total sel dari snapshot terkini, per source aktif.</p>
+
+      <?php if (empty($sourceHealth)): ?>
+        <div class="mt-6 rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700">
+          <i class="fa-solid fa-server text-xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+          <p class="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">Belum ada source aktif.</p>
         </div>
-      </section>
+      <?php else: ?>
+        <ul class="mt-5 space-y-5">
+          <?php foreach ($sourceHealth as $source): ?>
+            <li data-source="<?= esc($source['code']) ?>" data-total="<?= (int) $source['total'] ?>" data-ok="<?= (int) $source['ok'] ?>">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm font-semibold text-gray-800 dark:text-white/90">
+                  <?= esc($source['label']) ?>
+                  <code class="ml-1.5 text-[10px] font-normal text-gray-400"><?= esc($source['code']) ?></code>
+                </span>
+                <span class="text-sm font-bold text-gray-700 dark:text-gray-200">
+                  <?= (int) $source['ok'] ?>/<?= (int) $source['total'] ?> sel OK
+                  <span class="ml-1 text-xs font-medium text-gray-400">(<?= (int) $source['percent'] ?>%)</span>
+                </span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                <div class="h-2 rounded-full <?= $source['percent'] >= 100 ? 'bg-success-500' : ($source['percent'] >= 50 ? 'bg-warning-500' : 'bg-error-500') ?>" style="width: <?= (int) $source['percent'] ?>%"></div>
+              </div>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+
+      <?php if ($snapshotTotal === 0 && ! empty($sourceHealth)): ?>
+        <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">Belum ada snapshot — angka akan terisi setelah Check All pertama.</p>
+      <?php endif; ?>
     </div>
-  </div>
-
-  <div class="mt-8">
-    <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Kegagalan Terbaru</h2>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Anomali terbaru untuk ditindaklanjuti di Monitoring.</p>
-  </div>
-
-  <section class="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-    <?php if (empty($recentFailures)): ?>
-      <div class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada kegagalan yang tercatat.</div>
-    <?php else: ?>
-      <div class="divide-y divide-gray-100 dark:divide-gray-800">
-        <?php foreach ($recentFailures as $failure): ?>
-          <div class="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div><p class="font-semibold text-gray-800 dark:text-white/90"><?= esc($failure['task_code']) ?></p><p class="mt-1 text-sm text-error-600 dark:text-error-400"><?= esc($failure['error_message'] ?: 'Tidak ada detail error.') ?></p></div>
-            <span class="text-xs text-gray-400"><?= esc($formatDate($failure['executed_at'])) ?></span>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
   </section>
 </div>
 <?= $this->endSection() ?>

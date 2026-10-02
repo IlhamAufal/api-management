@@ -1,380 +1,249 @@
-# TailAdmin — CodeIgniter 4 Edition
+# MD-Bridge — Data Freshness Monitor
 
-> Template admin dashboard **TailAdmin Free** yang telah dimigrasikan ke **CodeIgniter 4.1.9**.  
-> Dibangun dengan Tailwind CSS, Alpine.js, dan sistem layout native CI4 (Extend/Section/Include).
+> Aplikasi internal untuk **memantau kesegaran (freshness) tabel master** di beberapa
+> database sumber read-only. MD-Bridge membandingkan status tiap tabel yang dipantau
+> (`watched_tables`) terhadap tiap sumber (`sources`) dalam satu **matrix dashboard**,
+> mencatat setiap pemeriksaan ke riwayat (`check_history`), dan menyimpan status terkini
+> per sel di `table_snapshots`.
 
----
-
-## 📋 Daftar Isi
-
-- [Tech Stack](#-tech-stack)
-- [Struktur Folder](#-struktur-folder)
-- [Prasyarat](#-prasyarat)
-- [Instalasi](#-instalasi)
-- [Konfigurasi](#-konfigurasi)
-- [Menjalankan Aplikasi](#-menjalankan-aplikasi)
-- [Cara Menambah Halaman Baru](#-cara-menambah-halaman-baru)
-- [Cara Menambah Route](#-cara-menambah-route)
-- [Fitur Dashboard](#-fitur-dashboard)
-- [Lisensi](#-lisensi)
+Dibangun di atas **CodeIgniter 4.1.9** (PHP 8.x) dengan UI TailAdmin (Tailwind CSS + Alpine.js,
+aset sudah dikompilasi — tanpa build pipeline Node).
 
 ---
 
-## 🛠 Tech Stack
+## Daftar Isi
+
+- [Konsep Singkat](#konsep-singkat)
+- [Tech Stack](#tech-stack)
+- [Prasyarat](#prasyarat)
+- [Quickstart](#quickstart)
+- [Struktur Folder](#struktur-folder)
+- [Model Data](#model-data)
+- [Status Freshness](#status-freshness)
+- [Konvensi Route](#konvensi-route)
+- [Menambah Source / Watched Table](#menambah-source--watched-table)
+- [Menjalankan Test](#menjalankan-test)
+- [Catatan Keamanan](#catatan-keamanan)
+
+---
+
+## Konsep Singkat
+
+- **Source** = satu database sumber read-only (mis. `npd`, `sap`). Tiap source punya
+  `code` yang **harus sama** dengan nama connection group di `app/Config/Database.php`
+  (dan key `database.<code>.*` di `.env`).
+- **Watched table** = satu tabel master yang ingin dipantau (mis. `sap_material_master`),
+  beserta kolom penanda sync (`sync_column`) dan ambang basi (`stale_after_minutes`).
+- **Check** = pemeriksaan satu sel (watched table × source): menghitung baris + membaca
+  waktu sync terakhir dari source, lalu menentukan status freshness. Hasil terkini
+  disimpan ke `table_snapshots` (satu baris per sel) dan setiap pemeriksaan ditambahkan
+  ke `check_history` (append-only).
+- **Matrix** (`/monitoring`) = baris = watched tables, kolom = sources, sel = badge status
+  + waktu sync terakhir. Tombol **Check All** (navbar, AJAX) dan **Check Now** per baris.
+
+---
+
+## Tech Stack
 
 | Layer | Teknologi |
 |-------|-----------|
-| **Backend Framework** | CodeIgniter 4.1.9 |
-| **PHP** | 7.4+ / 8.0+ |
-| **CSS Framework** | Tailwind CSS v4 (compiled → `public/assets/css/style.css`) |
-| **Interaktivitas** | Alpine.js v3 (bundled → `public/assets/js/bundle.js`) |
-| **Web Server** | Apache (XAMPP) atau `php spark serve` |
-| **Package Manager** | Composer |
+| Framework | CodeIgniter 4.1.9 |
+| PHP | 8.x |
+| Database | MySQL (lokal: `api_management`) + 2 sumber read-only (`yp_npd`, `yp_sap`) |
+| UI | TailAdmin (Tailwind CSS v4, dikompilasi ke `public/assets/css/`) |
+| Interaktivitas | Alpine.js v3 (`public/assets/js/bundle.js`) |
+| Ikon | Font Awesome (`public/assets/vendor/fontawesome`) |
+| Diagram alur | Drawflow (`public/assets/vendor/drawflow`) |
+| Test | PHPUnit 9.6 (SQLite in-memory untuk feature test) |
 
 ---
 
-## 📁 Struktur Folder
+## Prasyarat
 
-```
-tailadmin/
-├── .env                          # Konfigurasi environment (tidak di-commit)
-├── .gitignore
-├── .htaccess                     # Redirect root → public/ (URL bersih)
-├── app/
-│   ├── Config/
-│   │   ├── App.php               # baseURL, indexPage, dll
-│   │   ├── Routes.php            # Definisi routing
-│   │   ├── Autoload.php
-│   │   └── Filters.php
-│   ├── Controllers/
-│   │   ├── BaseController.php    # Controller dasar (autoload helper url, form)
-│   │   └── Dashboard.php         # Controller dashboard utama
-│   └── Views/
-│       ├── layouts/
-│       │   └── main.php          # Layout master (HTML shell + Alpine x-data)
-│       ├── partials/
-│       │   ├── sidebar.php       # Sidebar navigasi
-│       │   ├── navbar.php        # Topbar / header
-│       │   ├── preloader.php     # Loading spinner
-│       │   ├── overlay.php       # Overlay mobile sidebar
-│       │   └── footer_scripts.php # Tag <script> bundle.js
-│       └── dashboard/
-│           └── index.php         # Halaman dashboard (extend layout master)
-├── public/
-│   ├── .htaccess                 # Rewrite rule CI4 standar
-│   ├── index.php                 # Front controller (jangan diubah)
-│   ├── favicon.ico
-│   └── assets/
-│       ├── css/
-│       │   └── style.css         # Compiled Tailwind CSS
-│       ├── js/
-│       │   └── bundle.js         # Alpine.js + semua JS (compiled)
-│       └── images/
-│           ├── logo/             # logo.svg, logo-dark.svg, logo-icon.svg
-│           ├── user/             # Avatar user
-│           ├── product/          # Gambar produk
-│           └── ...
-├── composer.json
-├── composer.lock
-├── env                           # Template .env — salin ke .env saat setup
-├── spark                         # CLI CodeIgniter
-├── tests/
-└── writable/                     # Cache, log, session (di-ignore git)
-```
+| Tools | Versi | Catatan |
+|-------|-------|---------|
+| PHP | 8.0+ | Ekstensi `intl`, `mbstring`, `mysqli`, `sqlite3` aktif |
+| Composer | 2.x | Untuk `composer install` |
+| MySQL | 5.7 / 8.0 | Database lokal untuk tabel aplikasi |
+
+> Node.js **tidak** diperlukan — CSS/JS sudah dikompilasi di `public/assets/`.
 
 ---
 
-## ✅ Prasyarat
-
-Pastikan sudah terinstal:
-
-| Tools | Versi Minimum | Catatan |
-|-------|---------------|---------|
-| **PHP** | 7.4 | Rekomendasi: PHP 8.1 |
-| **Composer** | 2.x | [getcomposer.org](https://getcomposer.org) |
-| **Apache** | 2.4 | Via XAMPP, Laragon, atau native |
-| **mod_rewrite** | — | Wajib aktif di Apache |
-| **MySQL** | 5.7 / 8.0 | Opsional — hanya jika pakai database |
-
-> **Catatan:** Node.js **tidak diperlukan** untuk menjalankan project ini.  
-> CSS dan JS sudah dalam bentuk file compiled di `public/assets/`.
-
----
-
-## 🚀 Instalasi
-
-### 1. Clone Repository
+## Quickstart
 
 ```bash
-git clone https://github.com/username/tailadmin.git
-cd tailadmin
-```
-
-> **Pengguna Windows + XAMPP:** Taruh folder project di `C:\xampp\htdocs\tailadmin\`
-
-### 2. Install PHP Dependencies
-
-```bash
+# 1. Install dependency PHP
 composer install
-```
 
-### 3. Salin File Environment
+# 2. Siapkan environment
+#    Salin .env.example -> .env lalu isi kredensial lokal
+#    (database.default.*, auth.seed*, dan database.npd.* / database.sap.*)
+#    Windows: Copy-Item .env.example .env
+#    Linux/macOS: cp .env.example .env
 
-```bash
-# Linux / macOS
-cp env .env
-
-# Windows (PowerShell)
-Copy-Item env .env
-```
-
-### 4. Aktifkan mod_rewrite di XAMPP
-
-Buka `C:\xampp\apache\conf\httpd.conf`, pastikan baris berikut **tidak** dikomentari:
-
-```apache
-LoadModule rewrite_module modules/mod_rewrite.so
-```
-
-Dan di bagian `<Directory "C:/xampp/htdocs">`:
-
-```apache
-AllowOverride All
-```
-
-Lalu restart Apache di XAMPP Control Panel.
-
----
-
-## ⚙️ Konfigurasi
-
-Edit file `.env` sesuai lingkungan lokal:
-
-```ini
-# Mode aplikasi (development / production / testing)
-CI_ENVIRONMENT = development
-
-# URL dasar aplikasi — sesuaikan dengan lokasi project
-# Jika menggunakan XAMPP:
-app.baseURL = 'http://localhost/tailadmin/'
-
-# Jika menggunakan php spark serve:
-# app.baseURL = 'http://localhost:8080/'
-
-# Hilangkan index.php dari URL (wajib jika mod_rewrite aktif)
-app.indexPage = ''
-```
-
-> **Penting:** Jangan commit file `.env` ke GitHub — sudah di-ignore di `.gitignore`.
-
-### Konfigurasi Database (Opsional)
-
-Jika project Anda memerlukan database, tambahkan di `.env`:
-
-```ini
-database.default.hostname = localhost
-database.default.database = nama_database
-database.default.username = root
-database.default.password =
-database.default.DBDriver = MySQLi
-```
-
----
-
-## ▶️ Menjalankan Aplikasi
-
-### Via XAMPP (Rekomendasi)
-
-1. Pastikan **Apache** sudah berjalan di XAMPP Control Panel
-2. Buka browser, akses:
-
-```
-http://localhost/tailadmin/
-```
-
-### Via PHP Built-in Server (`spark serve`)
-
-```bash
-php spark serve
-```
-
-Lalu akses:
-
-```
-http://localhost:8080/
-```
-
-> **Catatan `spark serve`:** Ubah `app.baseURL` di `.env` menjadi `http://localhost:8080/`
-
----
-
-## 📄 Cara Menambah Halaman Baru
-
-Contoh: menambahkan halaman **Profil**.
-
-### 1. Buat View
-
-Buat file `app/Views/profile/index.php`:
-
-```php
-<?= $this->extend('layouts/main') ?>
-
-<?= $this->section('content') ?>
-<div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-        <?= esc($title) ?>
-    </h1>
-    <!-- Konten halaman di sini -->
-</div>
-<?= $this->endSection() ?>
-```
-
-### 2. Buat Controller
-
-Buat file `app/Controllers/Profile.php`:
-
-```php
-<?php
-
-namespace App\Controllers;
-
-class Profile extends BaseController
-{
-    public function index()
-    {
-        $data = [
-            'title' => 'Profil Saya',
-        ];
-
-        return view('profile/index', $data);
-    }
-}
-```
-
-### 3. Tambahkan Route
-
-Edit `app/Config/Routes.php`:
-
-```php
-$routes->get('profile', 'Profile::index');
-```
-
-Akses di browser: `http://localhost/tailadmin/profile`
-
----
-
-## 🔀 Cara Menambah Route
-
-Edit file `app/Config/Routes.php`:
-
-```php
-// GET route sederhana
-$routes->get('halaman', 'NamaController::namaMethod');
-
-// Route dengan parameter
-$routes->get('produk/(:num)', 'Produk::detail/$1');
-
-// Group route (misal: admin panel)
-$routes->group('admin', function ($routes) {
-    $routes->get('/', 'Admin::index');
-    $routes->get('users', 'Admin::users');
-});
-
-// Route untuk form (GET + POST)
-$routes->get('kontak', 'Kontak::index');
-$routes->post('kontak/kirim', 'Kontak::send');
-```
-
----
-
-## ✨ Fitur Dashboard
-
-Halaman dashboard utama (`/`) menampilkan:
-
-- **Metrik ringkasan** — Total customer, order, penjualan, dan pertumbuhan
-- **Statistik eCommerce** — Visualisasi dengan chart ApexCharts
-- **Tabel order terbaru** — Data tabular responsif
-- **Sidebar navigasi** — Collapsible dengan dark mode support
-- **Topbar / header** — Notifikasi, pencarian, profil pengguna
-- **Dark mode** — Toggle via Alpine.js + localStorage
-- **Preloader** — Animasi loading saat halaman pertama dibuka
-- **Responsif** — Mobile-first layout dengan sidebar overlay
-
-### Komponen Alpine.js yang Aktif
-
-| Komponen | `x-data` Key | Deskripsi |
-|----------|-------------|-----------|
-| Dark Mode | `darkMode` | Toggle dark/light, disimpan di localStorage |
-| Sidebar Toggle | `sidebarToggle` | Buka/tutup sidebar di mobile |
-| Scroll Top | `scrollTop` | Deteksi scroll untuk sticky navbar |
-| Menu Aktif | `selected` (di sidebar) | Highlight menu aktif via `$persist` |
-
----
-
-## 🔒 Catatan Keamanan
-
-- File `.env` **wajib** ada di `.gitignore` — berisi kredensial sensitif
-- CSRF protection tersedia di `app/Config/Filters.php` — aktifkan untuk form POST:
-  ```php
-  'before' => ['csrf'],
-  ```
-- Selalu gunakan `esc()` saat menampilkan data dari user/database ke view
-- Folder `app/` dilindungi oleh `.htaccess` (deny all direct access)
-
----
-
-## 🛠 Perintah Spark yang Berguna
-
-```bash
-# Jalankan development server
-php spark serve
-
-# Buat controller baru
-php spark make:controller NamaController
-
-# Buat model baru
-php spark make:model NamaModel
-
-# Buat migration baru
-php spark make:migration CreateNamaTable
-
-# Jalankan migration
+# 3. Buat skema database aplikasi
 php spark migrate
 
-# Cek list route yang terdaftar
-php spark routes
+# 4. Isi data awal (user admin + sources + 4 watched table) — idempoten
+php spark db:seed DatabaseSeeder
 
-# Clear cache
-php spark cache:clear
+# 5. Jalankan server pengembangan
+php spark serve
+```
+
+Lalu buka `http://localhost:8080/`, login dengan kredensial dari `auth.seed*` di `.env`.
+
+> **Catatan koneksi sumber:** fitur Check memerlukan akses ke database `npd` dan `sap`.
+> Jika sumber tidak terjangkau (mis. VPN mati), pemeriksaan akan menghasilkan status
+> `CONN_ERROR` — ini perilaku valid, bukan crash.
+
+---
+
+## Struktur Folder
+
+```
+api-management/
+├── app/
+│   ├── Config/
+│   │   ├── Database.php          # group: default, npd, sap, tests
+│   │   ├── Routes.php            # definisi route (lihat Konvensi Route)
+│   │   └── Filters.php           # filter auth + CSRF
+│   ├── Controllers/
+│   │   ├── Auth.php              # login / attempt / logout
+│   │   ├── Dashboard.php         # ringkasan analytics (dari check_history)
+│   │   ├── MonitoringMatrix.php  # index / checkAll / checkTable / history / workflow
+│   │   ├── WatchedTableRegistry.php  # CRUD watched_tables
+│   │   └── SyncLogs.php          # Execution logs (baca check_history)
+│   ├── Database/
+│   │   ├── Migrations/           # skema (lihat Model Data)
+│   │   └── Seeds/                # UsersSeeder, SourcesSeeder, WatchedTablesSeeder
+│   ├── Libraries/Monitoring/
+│   │   ├── TableFreshnessChecker.php  # inti pemeriksaan freshness
+│   │   ├── SourceIntrospector.php     # introspeksi tabel/kolom di source
+│   │   ├── CheckResult.php            # value object hasil check
+│   │   └── RelativeTime.php           # format "x menit lalu"
+│   ├── Models/                   # Source / WatchedTable / TableSnapshot / CheckHistory / User
+│   └── Views/
+│       ├── layouts/main.php
+│       ├── partials/             # sidebar, navbar, dsb.
+│       ├── components/           # badge_status, breadcrumb, workflow_canvas
+│       └── pages/monitoring_matrix/  # index, history, workflow
+├── public/                       # front controller + aset terkompilasi
+├── tests/                        # feature / unit / database (lihat tests/README.md)
+├── .env.example                  # template environment (placeholder dummy)
+└── composer.json
 ```
 
 ---
 
-## 📦 Dependensi
+## Model Data
 
-### PHP (Composer)
+Skema final dibuat oleh migrasi `2026-10-02-100000_CreateMonitoringCoreTables`
+(migrasi pipeline lama sudah di-drop oleh `2026-10-02-090000_DropLegacyPipelineTables`).
 
-| Package | Versi |
-|---------|-------|
-| `codeigniter4/framework` | 4.1.9 |
+| Tabel | Fungsi |
+|-------|--------|
+| `sources` | Registry sumber read-only. `code` unik = nama connection group. |
+| `watched_tables` | Tabel yang dipantau: `table_name`, `label`, `sync_column`, `stale_after_minutes`, `is_active`. |
+| `table_snapshots` | Status **terkini** per sel (unik `watched_table_id` + `source_id`); FK cascade ke dua tabel di atas. |
+| `check_history` | Riwayat **append-only** tiap pemeriksaan (tanpa FK agar riwayat tetap ada saat watched table dihapus). |
+| `users` | Akun login. |
 
-### Aset Frontend (sudah compiled, tidak perlu npm)
+Seed awal:
 
-| Library | Versi | Lokasi |
-|---------|-------|--------|
-| Tailwind CSS | v4 | `public/assets/css/style.css` |
-| Alpine.js | v3.14.1 | `public/assets/js/bundle.js` |
-| ApexCharts | v3.51.0 | `public/assets/js/bundle.js` |
-| FullCalendar | v6.1.15 | `public/assets/js/bundle.js` |
-| Flatpickr | v4.6.13 | `public/assets/js/bundle.js` |
-| JSVectorMap | v1.6.0 | `public/assets/js/bundle.js` |
-| Swiper | v11.1.14 | `public/assets/js/bundle.js` |
-| Dropzone | v6.0.0 | `public/assets/js/bundle.js` |
+- **Sources:** `npd` (YP NPD / `yp_npd`), `sap` (YP SAP / `yp_sap`).
+- **Watched tables:** `sap_material_master`, `sap_customer_master` (sync_column `updated_at`);
+  `sap_customer_material`, `sap_customer_sales_area` (sync_column `synced_at`). Semua
+  `stale_after_minutes = 1440` (24 jam).
+
+Seeder bersifat **idempoten** — menjalankan `db:seed` dua kali tidak membuat duplikat.
 
 ---
 
-## 📝 Lisensi
+## Status Freshness
 
-Project ini menggunakan lisensi **MIT**.  
-Template TailAdmin original: [tailadmin.com](https://tailadmin.com) — dirilis di bawah lisensi MIT.  
-Framework CodeIgniter 4: [codeigniter.com](https://codeigniter.com) — dirilis di bawah lisensi MIT.
+Setiap sel punya salah satu status berikut. Urutan "terburuk" (dipakai untuk mewarnai
+ringkasan/agregat) dari paling parah ke paling baik:
+
+```
+CONN_ERROR > MISSING_TABLE > NEVER_SYNCED > STALE > OK
+```
+
+| Status | Arti |
+|--------|------|
+| `OK` | Tabel ada & sync terakhir masih di dalam ambang `stale_after_minutes`. |
+| `STALE` | Tabel ada tapi sync terakhir melewati ambang basi. |
+| `NEVER_SYNCED` | Tabel ada tapi belum pernah tercatat sync (atau belum pernah dicek). |
+| `MISSING_TABLE` | Tabel tidak ditemukan di source. |
+| `CONN_ERROR` | Gagal konek ke source (mis. VPN mati / kredensial salah). |
+
+---
+
+## Konvensi Route
+
+Route didefinisikan di `app/Config/Routes.php` memakai **array callable** (FQCN di-`use`
+di atas file) dan dikelompokkan dengan **prefix group** di dalam group filter `auth`:
+
+```php
+use App\Controllers\MonitoringMatrix;
+
+$routes->group('', ['filter' => 'auth'], static function ($routes) {
+    $routes->group('monitoring', static function ($routes) {
+        $routes->get('', [MonitoringMatrix::class, 'index']);
+        $routes->post('check-table/(:num)', [MonitoringMatrix::class, 'checkTable']);
+        $routes->get('history/(:num)/(:num)', [MonitoringMatrix::class, 'history']);
+    });
+});
+```
+
+Catatan:
+
+- Parameter dari `(:num)` / `(:segment)` diteruskan otomatis ke argumen method
+  (tidak perlu `/$1` di target).
+- Route `login` / `logout` adalah satu-satunya yang publik; sisanya di balik filter `auth`.
+- `php spark routes` pada CI 4.1.9 **tidak** menampilkan handler array-callable di tabelnya
+  (keterbatasan tampilan versi tsb.). Route tetap ter-registrasi & ter-resolve dengan benar.
+
+---
+
+## Menambah Source / Watched Table
+
+**Source baru:**
+
+1. Tambahkan connection group di `app/Config/Database.php` (atau cukup via `.env`
+   `database.<code>.*`) dengan nama group = `code` source.
+2. Tambahkan barisnya di `app/Database/Seeds/SourcesSeeder.php` lalu
+   `php spark db:seed SourcesSeeder`, atau tambahkan langsung lewat data `sources`.
+
+**Watched table baru:**
+
+- Lewat UI: menu **Watched Tables** → **New** (`/watched-tables/new`), atau
+- Lewat seed: tambahkan entri di `WatchedTablesSeeder.php` lalu jalankan ulang seeder.
+
+Setiap watched table perlu `table_name`, `label`, `sync_column` (kolom timestamp penanda
+sync di source), dan `stale_after_minutes`.
+
+---
+
+## Menjalankan Test
+
+```bash
+php vendor/bin/phpunit --no-coverage
+```
+
+Feature test memakai database **SQLite in-memory** (group `tests`, `DBPrefix = db_`) dan
+trait `tests/_support/MonitoringFixtureTrait.php`. Detail pola & gotcha ada di
+[`tests/README.md`](tests/README.md).
+
+---
+
+## Catatan Keamanan
+
+- `.env` **tidak** di-commit (ada di `.gitignore`); `.env.example` hanya berisi placeholder
+  dummy — isi kredensial nyata hanya di `.env` lokal.
+- CSRF aktif (mode cookie); form POST menyertakan token, request AJAX mengirim header
+  `X-CSRF-TOKEN`.
+- Koneksi `npd` / `sap` dipakai **read-only** untuk introspeksi; MD-Bridge tidak menulis
+  ke database sumber.
+- Selalu gunakan `esc()` saat menampilkan data ke view.

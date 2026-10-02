@@ -52,8 +52,8 @@ class Database extends Config
 
     /**
      * Read-only source connection: yp_npd (Aurora RDS).
-     * Used by HistoryCheckService to inspect sync history;
-     * credentials come from .env (database.npd.*).
+     * Used by TableFreshnessChecker / SourceIntrospector to inspect
+     * watched tables; credentials come from .env (database.npd.*).
      *
      * @var array
      */

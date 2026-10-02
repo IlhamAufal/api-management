@@ -37,26 +37,30 @@ $routes->post('login', 'Auth::attempt');
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'Dashboard::index');
     $routes->get('dashboard', 'Dashboard::index');
-    $routes->get('monitoring', 'Monitoring::index');
-    $routes->post('monitoring/check/(:segment)', 'Monitoring::check/$1');
-    $routes->get('monitoring/(:segment)/(:segment)', 'Monitoring::showTable/$1/$2');
-    $routes->get('monitoring/(:segment)', 'Monitoring::show/$1');
-    $routes->get('tasks', 'TaskRegistry::index');
-    $routes->get('tasks/new', 'TaskRegistry::create');
-    $routes->post('tasks', 'TaskRegistry::store');
-    $routes->get('tasks/edit/(:num)', 'TaskRegistry::edit/$1');
-    $routes->post('tasks/update/(:num)', 'TaskRegistry::update/$1');
-    $routes->post('tasks/delete/(:num)', 'TaskRegistry::delete/$1');
-    $routes->post('tasks/toggle/(:num)', 'TaskRegistry::toggle/$1');
+
+    // Monitoring matrix (pengganti modul Monitoring/pipeline lama).
+    $routes->group('monitoring', static function ($routes) {
+        $routes->get('', 'MonitoringMatrix::index');
+        $routes->get('workflow', 'MonitoringMatrix::workflow');
+        $routes->post('check-all', 'MonitoringMatrix::checkAll');
+        $routes->post('check-table/(:num)', 'MonitoringMatrix::checkTable/$1');
+        $routes->get('history/(:num)/(:num)', 'MonitoringMatrix::history/$1/$2');
+    });
+
+    // Registry watched tables.
+    $routes->group('watched-tables', static function ($routes) {
+        $routes->get('', 'WatchedTableRegistry::index');
+        $routes->get('new', 'WatchedTableRegistry::create');
+        $routes->get('columns', 'WatchedTableRegistry::columns');
+        $routes->post('', 'WatchedTableRegistry::store');
+        $routes->get('edit/(:num)', 'WatchedTableRegistry::edit/$1');
+        $routes->post('update/(:num)', 'WatchedTableRegistry::update/$1');
+        $routes->post('toggle/(:num)', 'WatchedTableRegistry::toggle/$1');
+        $routes->post('delete/(:num)', 'WatchedTableRegistry::delete/$1');
+    });
+
     $routes->get('logs', 'SyncLogs::index');
     $routes->post('logout', 'Auth::logout');
-    $routes->post('api/sync/run/(:segment)', 'Api\\SyncController::run/$1');
-    $routes->post('api/sync/run-all', 'Api\\SyncController::runAll');
-});
-
-$routes->group('api/sync', ['namespace' => 'App\Controllers\Api'], static function ($routes) {
-    $routes->post('run-all', 'SyncController::runAll');
-    $routes->post('run/(:segment)', 'SyncController::run/$1');
 });
 /*
  * --------------------------------------------------------------------

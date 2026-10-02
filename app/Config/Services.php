@@ -19,14 +19,29 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
-     *
-     *     return new \CodeIgniter\Example();
-     * }
+    /**
+     * Introspeksi schema source aktif (dipakai registry watched tables).
+     * Shared supaya test bisa Services::injectMock('sourceIntrospector', ...).
      */
+    public static function sourceIntrospector(bool $getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('sourceIntrospector');
+        }
+
+        return new \App\Libraries\Monitoring\SourceIntrospector();
+    }
+
+    /**
+     * Checker data-freshness (monitoring matrix & pasca-simpan registry).
+     * Shared supaya test bisa Services::injectMock('freshnessChecker', ...).
+     */
+    public static function freshnessChecker(bool $getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('freshnessChecker');
+        }
+
+        return new \App\Libraries\Monitoring\TableFreshnessChecker();
+    }
 }

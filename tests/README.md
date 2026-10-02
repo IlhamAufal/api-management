@@ -1,108 +1,115 @@
-# Running Application Tests
+# Test MD-Bridge
 
-This is the quick-start to CodeIgniter testing. Its intent is to describe what 
-it takes to set up your application and get it ready to run unit tests. 
-It is not intended to be a full description of the test features that you can 
-use to test your application. Those details can be found in the documentation.
+Panduan menjalankan dan menulis test untuk MD-Bridge. Suite memakai **PHPUnit 9.6**
+dan database **SQLite in-memory** untuk feature test (tanpa menyentuh MySQL / sumber remote).
 
-## Resources
-* [CodeIgniter 4 User Guide on Testing](https://codeigniter4.github.io/userguide/testing/index.html)
-* [PHPUnit docs](https://phpunit.readthedocs.io/en/8.5/index.html)
+## Menjalankan
 
-## Requirements
+```bash
+# Seluruh suite
+php vendor/bin/phpunit --no-coverage
 
-It is recommended to use the latest version of PHPUnit. At the time of this 
-writing we are running version 8.5.13. Support for this has been built into the 
-**composer.json** file that ships with CodeIgniter and can easily be installed 
-via [Composer](https://getcomposer.org/) if you don't already have it installed globally.
+# Ringkas (nama test per baris)
+php vendor/bin/phpunit --no-coverage --testdox
 
-	> composer install
+# Satu file / satu folder
+php vendor/bin/phpunit tests/feature/HistoryPaginationTest.php --no-coverage
+php vendor/bin/phpunit tests/feature --no-coverage
+```
 
-If running under OS X or Linux, you can create a symbolic link to make running tests a touch nicer.
+Konfigurasi ada di `phpunit.xml.dist` (root). Saat `CI_ENVIRONMENT = testing`,
+`app/Config/Database.php` otomatis memakai group `tests` (SQLite `:memory:`,
+`DBPrefix = db_`) sehingga data live tidak pernah tersentuh.
 
-	> ln -s ./vendor/bin/phpunit ./phpunit
+## Struktur
 
-You also need to install [XDebug](https://xdebug.org/index.php) in order
-for code coverage to be calculated successfully.
+```
+tests/
+├── _support/
+│   ├── MonitoringFixtureTrait.php   # fixture utama feature test monitoring
+│   ├── FixtureFreshnessChecker.php  # checker palsu (tidak konek remote)
+│   ├── Database/ Libraries/ Models/ # helper tambahan
+├── feature/                         # test HTTP end-to-end (request → response)
+│   ├── MonitoringMatrixTest.php     # render matrix, Check All/Now, riwayat, logs
+│   ├── HistoryPaginationTest.php    # pagination + filter status riwayat
+│   ├── WatchedTableFormTest.php     # CRUD watched_tables
+│   ├── MonitoringWorkflowTest.php   # halaman workflow (Drawflow)
+│   ├── DashboardAnalyticsTest.php   # analytics dashboard
+│   └── LegacyRoutesRemovedTest.php  # memastikan route pipeline lama nonaktif
+├── unit/                            # unit murni
+└── database/                        # test terkait migrasi/DB
+```
 
-## Setting Up
+## Pola Feature Test (`MonitoringFixtureTrait`)
 
-A number of the tests use a running database. 
-In order to set up the database edit the details for the `tests` group in 
-**app/Config/Database.php** or **phpunit.xml**. Make sure that you provide a database engine 
-that is currently running on your machine. More details on a test database setup are in the 
-*Docs>>Testing>>Testing Your Database* section of the documentation.
+Hampir semua feature test monitoring memakai trait ini. Pola dasarnya:
 
-If you want to run the tests without using live database you can 
-exclude @DatabaseLive group. Or make a copy of **phpunit.dist.xml** - 
-call it **phpunit.xml** - and comment out the <testsuite> named "database". This will make
-the tests run quite a bit faster.
+```php
+use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\FeatureTestTrait;
+use Tests\Support\MonitoringFixtureTrait;
 
-## Running the tests
+final class ContohTest extends CIUnitTestCase
+{
+    use FeatureTestTrait;
+    use MonitoringFixtureTrait;
 
-The entire test suite can be run by simply typing one command-line command from the main directory.
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpMonitoringFixture(); // buat tabel + seed source npd & sap
+    }
 
-	> ./phpunit
+    public function testContoh(): void
+    {
+        $tableId = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        $this->insertSnapshot([
+            'watched_table_id' => $tableId,
+            'source_id'        => $this->sourceId('npd'),
+            'status'           => 'OK',
+        ]);
 
-You can limit tests to those within a single test directory by specifying the 
-directory name after phpunit. 
+        $result = $this->withSession($this->authSession())
+            ->get('monitoring/history/' . $tableId . '/' . $this->sourceId('npd'));
 
-	> ./phpunit app/Models
+        $result->assertOK();
+        $this->assertBodySee('Pesanan FX', $result);
+        $this->assertStatusBadge($result, 'OK');
+    }
+}
+```
 
-## Generating Code Coverage
+Helper yang disediakan trait:
 
-To generate coverage information, including HTML reports you can view in your browser, 
-you can use the following command: 
+| Helper | Fungsi |
+|--------|--------|
+| `setUpMonitoringFixture()` | Drop + buat 4 tabel monitoring, seed source `npd` (id 1) & `sap` (id 2), matikan CSRF filter, suntik introspector/checker palsu. |
+| `authSession()` | Array sesi login (`['auth_logged_in' => true]`). |
+| `sourceId('npd'\|'sap')` | Ambil id source hasil seed. |
+| `insertWatchedTable([...])` | Insert watched table (default `fx_orders`). Mengembalikan id. |
+| `insertSnapshot([...])` / `insertHistory([...])` | Insert baris snapshot / riwayat. |
+| `assertBodySee()` / `assertBodyNotSee()` | Cek substring di body response. |
+| `assertStatusBadge($result, 'OK')` | Cek badge status (regex, tahan whitespace). |
+| `countRows('check_history')` | Hitung baris sebuah tabel. |
 
-	> ./phpunit --colors --coverage-text=tests/coverage.txt --coverage-html=tests/coverage/ -d memory_limit=1024m
+## Gotcha (WAJIB diperhatikan)
 
-This runs all of the tests again collecting information about how many lines, 
-functions, and files are tested. It also reports the percentage of the code that is covered by tests. 
-It is collected in two formats: a simple text file that provides an overview as well 
-as a comprehensive collection of HTML files that show the status of every line of code in the project. 
+- **Reset cache metadata setelah DDL.** Koneksi SQLite shared men-cache `listTables()` /
+  `getFieldNames()` di `$db->dataCache`. Trait sudah memanggil `$this->fixtureDb->dataCache = []`
+  setelah membuat tabel. Jika Anda membuat tabel sendiri di luar trait, lakukan hal yang sama,
+  jika tidak tabel baru bisa "tak terlihat".
+- **`TestResponse` tidak punya `getBody()`.** Gunakan `$result->response()->getBody()`
+  (atau helper `assertBodySee()` / `assertStatusBadge()` di trait). Jangan panggil
+  `$result->getBody()`.
+- **Jangan andalkan `assertSee()` DOMParser.** Pada CI 4.1.9 + PHP 8.4, DOMParser bermasalah;
+  pakai assertion berbasis body mentah dari trait.
+- **`mb_convert_encoding(HTML-ENTITIES)` deprecation** sudah "diserap" sekali di
+  `setUpMonitoringFixture()` — jangan menambahkannya lagi secara manual.
+- **DBPrefix `db_`.** Nama tabel fisik di SQLite tests berawalan `db_` (mis. `db_check_history`),
+  tapi query lewat Model/Builder tetap memakai nama logis (`check_history`).
 
-The text file can be found at **tests/coverage.txt**. 
-The HTML files can be viewed by opening **tests/coverage/index.html** in your favorite browser.
+## Live Database (opsional)
 
-## PHPUnit XML Configuration
-
-The repository has a ``phpunit.xml.dist`` file in the project root that's used for
-PHPUnit configuration. This is used to provide a default configuration if you
-do not have your own configuration file in the project root.
-
-The normal practice would be to copy ``phpunit.xml.dist`` to ``phpunit.xml``
-(which is git ignored), and to tailor it as you see fit.
-For instance, you might wish to exclude database tests, or automatically generate 
-HTML code coverage reports.
-
-## Test Cases
-
-Every test needs a *test case*, or class that your tests extend. CodeIgniter 4
-provides a few that you may use directly:
-* `CodeIgniter\Test\CIUnitTestCase` - for basic tests with no other service needs
-* `CodeIgniter\Test\DatabaseTestTrait` - for tests that need database access
-
-Most of the time you will want to write your own test cases to hold functions and services
-common to your test suites.
-
-## Creating Tests
-
-All tests go in the **tests/** directory. Each test file is a class that extends a
-**Test Case** (see above) and contains methods for the individual tests. These method
-names must start with the word "test" and should have descriptive names for precisely what
-they are testing:
-`testUserCanModifyFile()` `testOutputColorMatchesInput()` `testIsLoggedInFailsWithInvalidUser()`
-
-Writing tests is an art, and there are many resources available to help learn how.
-Review the links above and always pay attention to your code coverage.
-
-### Database Tests
-
-Tests can include migrating, seeding, and testing against a mock or live<sup>1</sup> database.
-Be sure to modify the test case (or create your own) to point to your seed and migrations
-and include any additional steps to be run before tests in the `setUp()` method.
-
-<sup>1</sup> Note: If you are using database tests that require a live database connection
-you will need to rename **phpunit.xml.dist** to **phpunit.xml**, uncomment the database
-configuration lines and add your connection details. Prevent **phpunit.xml** from being
-tracked in your repo by adding it to **.gitignore**.
+Untuk test yang butuh MySQL nyata, salin `phpunit.xml.dist` → `phpunit.xml`, isi detail group
+`tests`, dan pastikan `phpunit.xml` masuk `.gitignore`. Secara default suite tidak memerlukan
+koneksi live.
