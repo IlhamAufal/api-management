@@ -32,6 +32,7 @@ $value = static function (string $field, string $default = '') use ($source, $ol
   <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <form method="post" action="<?= esc($formAction) ?>" class="p-5 md:p-6">
       <?= csrf_field() ?>
+      <input type="hidden" name="return_to" value="<?= $isEdit ? 'edit/' . (int) $source['id'] : 'new' ?>" />
 
       <?php if (! empty($errors)): ?>
         <div class="mb-5 flex items-start gap-2 rounded-xl border border-error-200 bg-error-50 p-4 text-sm font-medium text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300">
@@ -51,7 +52,7 @@ $value = static function (string $field, string $default = '') use ($source, $ol
         <i class="fa-solid fa-key mt-0.5" aria-hidden="true"></i>
         <div>
           <p class="font-semibold">Credential diisi manual oleh developer</p>
-          <p class="mt-1">Kode database harus sama dengan nama connection group di <code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">app/Config/Database.php</code> dan nilai credential di <code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">.env</code> (<code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">database.<?= esc($value('code', '<kode>')) ?>.*</code>). Selama group belum ada, database tampil <strong>PENDING_CONFIG</strong> — bukan error.</p>
+          <p class="mt-1">Kode database harus sama dengan nama connection group di <code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">app/Config/Database.php</code> dan nilai credential di <code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">.env</code> (<code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">database.<?= esc($value('code', '<kode>')) ?>.*</code>). Selama group belum ada, database tampil <strong>PENDING_CONFIG</strong> — bukan error. Pakai tombol <strong>Uji Koneksi</strong> untuk memverifikasi sebelum menyimpan.</p>
         </div>
       </div>
 
@@ -73,7 +74,11 @@ $value = static function (string $field, string $default = '') use ($source, $ol
         <label for="is_active" class="text-sm text-gray-700 dark:text-gray-300">Aktif (ikut check berikutnya)</label>
       </div>
 
-      <div class="mt-6 flex items-center gap-3">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <button type="submit" formaction="<?= base_url('databases/test') ?>" formmethod="post" title="Uji koneksi sesuai kode yang diisi — tanpa menyimpan" class="inline-flex items-center justify-center gap-2 rounded-lg border border-warning-300 bg-warning-50 px-5 py-2.5 text-sm font-semibold text-warning-700 transition hover:bg-warning-100 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-400 dark:hover:bg-warning-500/20">
+          <i class="fa-solid fa-plug" aria-hidden="true"></i>
+          Uji Koneksi
+        </button>
         <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600">
           <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
           <?= $isEdit ? 'Simpan Perubahan' : 'Daftarkan Database' ?>

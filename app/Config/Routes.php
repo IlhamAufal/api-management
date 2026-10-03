@@ -42,6 +42,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('monitoring', static function ($routes) {
         $routes->get('', 'MonitoringMatrix::index');
         $routes->get('workflow', 'MonitoringMatrix::workflow');
+        $routes->get('workflow/source/(:segment)', 'MonitoringMatrix::workflowSource/$1');
         $routes->get('source/(:segment)', 'MonitoringMatrix::source/$1');
         $routes->post('check-all', 'MonitoringMatrix::checkAll');
         $routes->post('check-cell/(:num)/(:num)', 'MonitoringMatrix::checkCell/$1/$2');
@@ -67,6 +68,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('databases', static function ($routes) {
         $routes->get('', 'DatabaseRegistry::index');
         $routes->get('new', 'DatabaseRegistry::create');
+        $routes->post('test', 'DatabaseRegistry::test');
         $routes->post('', 'DatabaseRegistry::store');
         $routes->get('edit/(:num)', 'DatabaseRegistry::edit/$1');
         $routes->post('update/(:num)', 'DatabaseRegistry::update/$1');

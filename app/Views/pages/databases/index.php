@@ -69,6 +69,14 @@ $configMap = [
                 <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold <?= $status['class'] ?>"><span class="h-1.5 w-1.5 rounded-full <?= $status['dot'] ?>"></span><?= esc($status['label']) ?></span></td>
                 <td class="px-5 py-4">
                   <div class="flex items-center justify-end gap-1.5">
+                    <form method="post" action="<?= base_url('databases/test') ?>" title="Uji koneksi">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="code" value="<?= esc($source['code']) ?>" />
+                      <input type="hidden" name="return_to" value="index" />
+                      <button type="submit" title="Uji koneksi" aria-label="Uji koneksi <?= esc($source['label'], 'attr') ?>" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-warning-300 hover:bg-warning-50 hover:text-warning-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-warning-500/50 dark:hover:bg-warning-500/10 dark:hover:text-warning-400">
+                        <i class="fa-solid fa-plug text-xs" aria-hidden="true"></i>
+                      </button>
+                    </form>
                     <a href="<?= base_url('databases/edit/' . (int) $source['id']) ?>" title="Edit" aria-label="Edit <?= esc($source['label'], 'attr') ?>" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-500 dark:border-gray-700 dark:text-gray-400 dark:hover:border-brand-700 dark:hover:bg-brand-500/10 dark:hover:text-brand-400">
                       <i class="fa-solid fa-pen-to-square text-xs" aria-hidden="true"></i>
                     </a>

@@ -260,25 +260,70 @@ class MonitoringMatrix extends BaseController
 
     /**
      * Halaman alur workflow (Drawflow) — visualisasi read-only:
-     * source -> checker -> watched table -> matrix dashboard.
+     * source -> checker -> watched table -> dashboard monitoring.
      * Pengganti canvas "Alur Workflow" di modul Monitoring lama.
+     *
+     * Landing = source aktif pertama (tanpa redirect; URL tetap
+     * /monitoring/workflow) — tab dipilih lewat workflowSource().
      */
     public function workflow()
     {
-        $tables  = $this->watchedModel->getActiveTables();
         $sources = $this->sourceModel->getActiveSources();
 
-        $snapshots = [];
-        foreach ($this->snapshotModel->findAll() as $snapshot) {
-            $snapshots[$snapshot['watched_table_id'] . ':' . $snapshot['source_id']] = $snapshot;
+        if ($sources === []) {
+            return $this->renderWorkflow(null, []);
         }
 
+        return $this->renderWorkflow($sources[0], $sources);
+    }
+
+    /**
+     * Workflow satu source berdasarkan `sources.code`. Tiap tab adalah
+     * URL nyata yang bisa di-share. Code tidak ada / nonaktif → 404.
+     * Graph hanya memuat flow source terpilih (bukan gabungan semua).
+     */
+    public function workflowSource(string $code)
+    {
+        $source = $this->sourceModel->findByCode($code);
+
+        if ($source === null || (int) $source['is_active'] !== 1) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
+                'Source "' . $code . '" tidak ditemukan atau tidak aktif.'
+            );
+        }
+
+        return $this->renderWorkflow($source, $this->sourceModel->getActiveSources());
+    }
+
+    /**
+     * Render halaman workflow per-source: tab bar semua source aktif +
+     * graph alur untuk source terpilih (saja).
+     *
+     * @param array<string,mixed>|null       $activeSource
+     * @param array<int,array<string,mixed>> $sources
+     */
+    private function renderWorkflow(?array $activeSource, array $sources)
+    {
+        $tables = $this->watchedModel->getActiveTables();
+
+        // Snapshot untuk source terpilih saja.
+        $snapshots = [];
+        if ($activeSource !== null) {
+            foreach ($this->snapshotModel->where('source_id', (int) $activeSource['id'])->findAll() as $snapshot) {
+                $snapshots[$snapshot['watched_table_id'] . ':' . $snapshot['source_id']] = $snapshot;
+            }
+        }
+
+        // Graph di-scope ke source terpilih (kosong kalau tidak ada source).
+        $graphSources = $activeSource === null ? [] : [$activeSource];
+
         return view('pages/monitoring_matrix/workflow', [
-            'title'    => 'Alur Workflow | MD-Bridge',
-            'page'     => 'monitoring',
-            'workflow' => $this->buildWorkflow($tables, $sources, $snapshots),
-            'tables'   => $tables,
-            'sources'  => $sources,
+            'title'        => 'Alur Workflow | MD-Bridge',
+            'page'         => 'monitoring',
+            'workflow'     => $this->buildWorkflow($tables, $graphSources, $snapshots),
+            'tables'       => $tables,
+            'sources'      => $sources,
+            'activeSource' => $activeSource,
         ]);
     }
 
@@ -383,14 +428,14 @@ class MonitoringMatrix extends BaseController
             $edges[] = ['from' => $tableKey, 'to' => 'sink'];
         }
 
-        // Kolom 3 - dashboard matrix sebagai tujuan akhir.
+        // Kolom 3 - dashboard monitoring sebagai tujuan akhir.
         $totalCells = count($tables) * count($sources);
         $nodes[] = [
             'key'      => 'sink',
             'column'   => 3,
             'variant'  => 'sink',
             'icon'     => 'database',
-            'title'    => 'Monitoring Matrix',
+            'title'    => 'Dashboard Monitoring',
             'subtitle' => 'Dashboard MD-Bridge',
             'status'   => $worst,
             'meta'     => [

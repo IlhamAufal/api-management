@@ -1,8 +1,8 @@
 # MD-Bridge — Data Freshness Monitor
 
 > Aplikasi internal untuk **memantau kesegaran (freshness) tabel master** di beberapa
-> database sumber read-only. MD-Bridge membandingkan status tiap tabel yang dipantau
-> (`watched_tables`) terhadap tiap sumber (`sources`) dalam satu **matrix dashboard**,
+> database sumber read-only. MD-Bridge memeriksa status tiap tabel yang dipantau
+> (`watched_tables`) di tiap sumber (`sources`) lewat **dashboard monitoring per-source**,
 > mencatat setiap pemeriksaan ke riwayat (`check_history`), dan menyimpan status terkini
 > per sel di `table_snapshots`.
 
@@ -38,8 +38,10 @@ aset sudah dikompilasi — tanpa build pipeline Node).
   waktu sync terakhir dari source, lalu menentukan status freshness. Hasil terkini
   disimpan ke `table_snapshots` (satu baris per sel) dan setiap pemeriksaan ditambahkan
   ke `check_history` (append-only).
-- **Matrix** (`/monitoring`) = baris = watched tables, kolom = sources, sel = badge status
-  + waktu sync terakhir. Tombol **Check All** (navbar, AJAX) dan **Check Now** per baris.
+- **Monitoring** (`/monitoring`, `/monitoring/source/{code}`) = dashboard per-source:
+  tab bar berisi semua source aktif (tiap tab URL nyata), baris = watched tables pada
+  source terpilih, sel = badge status + umur data terakhir, urut worst-first.
+  Tombol **Check All** (navbar, AJAX), **Check Sumber Ini** (per source), dan **Check Sel** (per baris).
 
 ---
 
@@ -112,7 +114,7 @@ api-management/
 │   ├── Controllers/
 │   │   ├── Auth.php              # login / attempt / logout
 │   │   ├── Dashboard.php         # ringkasan analytics (dari check_history)
-│   │   ├── MonitoringMatrix.php  # index / checkAll / checkTable / history / workflow
+│   │   ├── MonitoringMatrix.php  # index / source / checkAll / checkCell / checkSource / history / workflow
 │   │   ├── WatchedTableRegistry.php  # CRUD watched_tables
 │   │   └── SyncLogs.php          # Execution logs (baca check_history)
 │   ├── Database/
@@ -128,7 +130,8 @@ api-management/
 │       ├── layouts/main.php
 │       ├── partials/             # sidebar, navbar, dsb.
 │       ├── components/           # badge_status, breadcrumb, workflow_canvas
-│       └── pages/monitoring_matrix/  # index, history, workflow
+│       ├── pages/monitoring_source/   # dashboard per-source (index)
+│       └── pages/monitoring_matrix/   # history, workflow
 ├── public/                       # front controller + aset terkompilasi
 ├── tests/                        # feature / unit / database (lihat tests/README.md)
 ├── .env.example                  # template environment (placeholder dummy)
@@ -182,28 +185,27 @@ CONN_ERROR > MISSING_TABLE > NEVER_SYNCED > STALE > OK
 
 ## Konvensi Route
 
-Route didefinisikan di `app/Config/Routes.php` memakai **array callable** (FQCN di-`use`
-di atas file) dan dikelompokkan dengan **prefix group** di dalam group filter `auth`:
+Route didefinisikan di `app/Config/Routes.php` memakai **handler string**
+(`'Controller::method'`) dan dikelompokkan dengan **prefix group** di dalam group filter `auth`:
 
 ```php
-use App\Controllers\MonitoringMatrix;
-
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('monitoring', static function ($routes) {
-        $routes->get('', [MonitoringMatrix::class, 'index']);
-        $routes->post('check-table/(:num)', [MonitoringMatrix::class, 'checkTable']);
-        $routes->get('history/(:num)/(:num)', [MonitoringMatrix::class, 'history']);
+        $routes->get('', 'MonitoringMatrix::index');
+        $routes->get('source/(:segment)', 'MonitoringMatrix::source/$1');
+        $routes->post('check-cell/(:num)/(:num)', 'MonitoringMatrix::checkCell/$1/$2');
+        $routes->post('check-source/(:segment)', 'MonitoringMatrix::checkSource/$1');
+        $routes->get('history/(:num)/(:num)', 'MonitoringMatrix::history/$1/$2');
     });
 });
 ```
 
 Catatan:
 
-- Parameter dari `(:num)` / `(:segment)` diteruskan otomatis ke argumen method
-  (tidak perlu `/$1` di target).
+- Parameter dari `(:num)` / `(:segment)` diteruskan ke argumen method lewat `/$1`.
 - Route `login` / `logout` adalah satu-satunya yang publik; sisanya di balik filter `auth`.
-- `php spark routes` pada CI 4.1.9 **tidak** menampilkan handler array-callable di tabelnya
-  (keterbatasan tampilan versi tsb.). Route tetap ter-registrasi & ter-resolve dengan benar.
+- Route `check-table` lama (per tabel × semua source) sudah **dihapus** — aksi check kini
+  per sel (`check-cell`) atau per source (`check-source`).
 
 ---
 

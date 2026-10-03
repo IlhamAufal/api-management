@@ -205,4 +205,117 @@ final class DatabaseRegistryTest extends CIUnitTestCase
         $row = $this->fixtureDb->table('sources')->where('id', $id)->get()->getRowArray();
         $this->assertSame(0, (int) $row['is_active']);
     }
+
+    // ------------------------------------------------------------------
+    // Uji koneksi (tanpa menyimpan)
+    // ------------------------------------------------------------------
+
+    public function testTestConnectionButtonVisibleOnFormsAndIndex()
+    {
+        $id = $this->insertSource(['code' => 'zona_uji', 'label' => 'Zona Uji']);
+
+        $new = $this->withSession($this->authSession())->get('databases/new');
+        $new->assertOK();
+        $this->assertBodySee('Uji Koneksi', $new);
+
+        $edit = $this->withSession($this->authSession())->get('databases/edit/' . $id);
+        $edit->assertOK();
+        $this->assertBodySee('Uji Koneksi', $edit);
+
+        $index = $this->withSession($this->authSession())->get('databases');
+        $index->assertOK();
+        $this->assertBodySee('Uji koneksi', $index);
+    }
+
+    public function testTestConnectionFailsFastForUnknownGroup()
+    {
+        $result = $this->withSession($this->authSession())->post('databases/test', [
+            'code'      => 'zona_nggakada',
+            'return_to' => 'new',
+        ]);
+
+        $result->assertRedirectTo(base_url('databases/new'));
+
+        $flash = \Config\Services::session()->getFlashdata('flash_error');
+        $this->assertIsString($flash);
+        $this->assertStringContainsString('Config/Database', $flash);
+        $this->assertStringContainsString('database.zona_nggakada.*', $flash);
+        // Tidak ada source tersimpan oleh uji koneksi.
+        $this->assertSame(2, $this->countRows('sources'));
+        $this->assertSame(0, $this->countRows('check_history'));
+    }
+
+    public function testTestConnectionReportsEmptyCredentials()
+    {
+        // Group 'tests' ada tapi username kosong (tanpa override .env) —
+        // gagal sebelum percobaan koneksi jaringan.
+        $result = $this->withSession($this->authSession())->post('databases/test', [
+            'code'      => 'tests',
+            'return_to' => 'index',
+        ]);
+
+        $result->assertRedirectTo(base_url('databases'));
+
+        $flash = \Config\Services::session()->getFlashdata('flash_error');
+        $this->assertIsString($flash);
+        $this->assertStringContainsString('credential belum diisi', $flash);
+        $this->assertStringContainsString('database.tests.', $flash);
+    }
+
+    public function testTestConnectionSucceedsForConfiguredGroup()
+    {
+        // Suntik credential sesaat ke group tests (driver SQLite — hermetik),
+        // kembalikan setelah test walau gagal.
+        $config   = config('Database');
+        $original = $config->tests['username'];
+        $config->tests['username'] = 'uji_koneksi';
+
+        try {
+            $result = $this->withSession($this->authSession())->post('databases/test', [
+                'code'      => 'tests',
+                'return_to' => 'index',
+            ]);
+
+            $result->assertRedirectTo(base_url('databases'));
+
+            $flash = \Config\Services::session()->getFlashdata('flash_success');
+            $this->assertIsString($flash);
+            $this->assertStringContainsString('OK', $flash);
+            $this->assertStringContainsString('terhubung', $flash);
+            $this->assertStringContainsString('tabel terdeteksi', $flash);
+        } finally {
+            $config->tests['username'] = $original;
+        }
+    }
+
+    public function testTestConnectionRejectsInvalidCode()
+    {
+        $result = $this->withSession($this->authSession())->post('databases/test', [
+            'code' => 'my-db!',
+        ]);
+
+        $result->assertRedirectTo(base_url('databases'));
+
+        $flash = \Config\Services::session()->getFlashdata('flash_error');
+        $this->assertIsString($flash);
+        $this->assertStringContainsString('tidak valid', $flash);
+    }
+
+    public function testTestConnectionReturnsToEditTarget()
+    {
+        $id = $this->insertSource(['code' => 'zona_return', 'label' => 'Return']);
+
+        $result = $this->withSession($this->authSession())->post('databases/test', [
+            'code'      => 'zona_return',
+            'return_to' => 'edit/' . $id,
+        ]);
+
+        $result->assertRedirectTo(base_url('databases/edit/' . $id));
+
+        // Kode tidak valid untuk connect tapi return tetap ke edit —
+        // 'zona_return' tidak punya group → flash_error, bukan sukses.
+        $flash = \Config\Services::session()->getFlashdata('flash_error');
+        $this->assertIsString($flash);
+        $this->assertStringContainsString('zona_return', $flash);
+    }
 }

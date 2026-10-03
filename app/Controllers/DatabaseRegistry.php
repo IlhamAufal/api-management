@@ -153,6 +153,79 @@ class DatabaseRegistry extends BaseController
     }
 
     /**
+     * Uji koneksi tanpa menyimpan — dipanggil tombol "Uji Koneksi"
+     * di form (new/edit, via formaction) dan ikon plug di list.
+     * Menguji apa adanya: group config → credential → ping nyata.
+     */
+    public function test()
+    {
+        $code     = strtolower(trim((string) $this->request->getPost('code')));
+        $back     = $this->testReturnUrl((string) $this->request->getPost('return_to'));
+        $withOld  = static fn () => redirect()->to($back)->withInput();
+
+        if ($code === '' || ! TableFreshnessChecker::isValidIdentifier($code)) {
+            return $withOld()->with('flash_error', 'Uji koneksi dibatalkan: kode database tidak valid.');
+        }
+
+        [$ok, $message] = $this->pingGroup($code);
+
+        if (! $ok) {
+            return $withOld()->with('flash_error', 'Uji koneksi "' . $code . '" gagal — ' . $message);
+        }
+
+        return $withOld()->with('flash_success', 'Uji koneksi "' . $code . '" OK — ' . $message);
+    }
+
+    /**
+     * Ping satu connection group: cek keberadaan group, kelengkapan
+     * credential, lalu koneksi nyata + SELECT 1. Tidak menulis snapshot
+     * atau riwayat (murni uji koneksi).
+     *
+     * @return array{0:bool,1:string} [sukses, pesan]
+     */
+    private function pingGroup(string $code): array
+    {
+        if (! TableFreshnessChecker::hasConnectionGroup($code)) {
+            return [false, 'connection group belum ada di Config/Database.php — tambahkan group dan isi credential di .env (database.' . $code . '.*).'];
+        }
+
+        if (! TableFreshnessChecker::isConfiguredGroup(config('Database')->{$code} ?? null)) {
+            return [false, 'credential belum diisi di .env (database.' . $code . '.hostname / .username).'];
+        }
+
+        try {
+            $start = microtime(true);
+            $db    = db_connect($code);
+            $db->query('SELECT 1');
+            $ms = (int) round((microtime(true) - $start) * 1000);
+
+            $tableCount = count($db->listTables());
+
+            return [true, 'terhubung (ping ' . $ms . ' ms — ' . $tableCount . ' tabel terdeteksi).'];
+        } catch (\Throwable $e) {
+            return [false, TableFreshnessChecker::shortError($e->getMessage()) . '.'];
+        }
+    }
+
+    /**
+     * Tujuan kembali setelah uji koneksi (whitelist — bukan URL bebas).
+     */
+    private function testReturnUrl(string $returnTo): string
+    {
+        if ($returnTo === 'new') {
+            return base_url('databases/new');
+        }
+
+        if (preg_match('#^edit/([0-9]+)$#', $returnTo, $matches) === 1) {
+            if ($this->sourceModel->find((int) $matches[1]) !== null) {
+                return base_url('databases/edit/' . (int) $matches[1]);
+            }
+        }
+
+        return base_url('databases');
+    }
+
+    /**
      * Check sekali semua watched table aktif terhadap source ini.
      * Pasca-daftar biasanya menghasilkan PENDING_CONFIG (group belum
      * ada) — itu memang tampilan yang diinginkan (plan bagian 8.4).
