@@ -39,7 +39,7 @@
           <?= $isActive ? 'aria-current="page"' : '' ?>
         >
           <?= esc($tab['label']) ?>
-          <code class="text-[10px] font-normal opacity-70"><?= esc($tab['code']) ?></code>
+          <!-- <code class="text-[10px] font-normal opacity-70"><?= esc($tab['code']) ?></code> -->
         </a>
       <?php endforeach; ?>
     </nav>
@@ -64,7 +64,7 @@
           <?= csrf_field() ?>
           <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600">
             <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-            Check Sumber Ini
+            Check Database
           </button>
         </form>
       </div>
@@ -84,6 +84,7 @@
                   <th class="px-5 py-3 text-sm font-semibold">Tabel</th>
                   <th class="px-5 py-3 text-sm font-semibold">Status</th>
                   <th class="px-5 py-3 text-sm font-semibold">Umur Data</th>
+                  <th class="px-5 py-3 text-sm font-semibold">Keterangan</th>
                   <th class="px-5 py-3 text-right text-sm font-semibold">Baris</th>
                   <th class="px-5 py-3 text-right text-sm font-semibold">Aksi</th>
                 </tr>
@@ -111,7 +112,13 @@
                         <?php if ($snapshot['last_synced_at'] !== null): ?>
                           <span class="mt-0.5 block text-[10px] text-gray-400"><?= esc($snapshot['last_synced_at']) ?></span>
                         <?php endif; ?>
-                        <span class="mt-0.5 block text-[10px] text-gray-400">dicek <?= esc($relative($snapshot['checked_at'])) ?></span>
+                      <?php endif; ?>
+                    </td>
+                    <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">
+                      <?php if ($snapshot === null): ?>
+                        <span class="text-gray-400">-</span>
+                      <?php else: ?>
+                        <span class="block font-sm">dicek <?= esc($relative($snapshot['checked_at'])) ?></span>
                       <?php endif; ?>
                     </td>
                     <td class="px-5 py-4 text-right font-mono text-sm text-gray-700 dark:text-gray-200">

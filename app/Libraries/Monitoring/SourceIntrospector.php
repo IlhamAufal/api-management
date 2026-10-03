@@ -3,15 +3,25 @@
 namespace App\Libraries\Monitoring;
 
 use App\Models\SourceModel;
+use CodeIgniter\Cache\CacheInterface;
+use CodeIgniter\Config\Services;
 use CodeIgniter\Database\BaseConnection;
 use Throwable;
 
 /**
  * Introspeksi schema source aktif (union tabel & kolom) untuk
  * registry UI — pengganti hardcode information_schema.
+ *
+ * Hasil introspeksi di-cache singkat (CACHE_TTL) karena tiap
+ * listTables/listColumns = koneksi remote (npd/sap ~0.1–0.3s).
+ * Cache di-flush saat source berubah lewat UI (daftar union).
  */
 class SourceIntrospector
 {
+    /** TTL cache introspeksi (detik) */
+    public const CACHE_TTL = 60;
+
+    private const CACHE_INDEX = 'intro_index';
     /** @var callable|null fn(string $code): BaseConnection */
     private $sourceResolver;
 
@@ -73,6 +83,13 @@ class SourceIntrospector
      */
     public function listTables(?string $sourceCode = null): array
     {
+        $key    = $this->cacheKey('tables', $sourceCode);
+        $cached = $this->cache()->get($key);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $tables = [];
 
         foreach ($this->scopedConnections($sourceCode) as $db) {
@@ -83,6 +100,8 @@ class SourceIntrospector
 
         $names = array_keys($tables);
         sort($names);
+
+        $this->remember($key, $names);
 
         return $names;
     }
@@ -100,15 +119,86 @@ class SourceIntrospector
             return null;
         }
 
+        $key    = $this->cacheKey('cols:' . $table, $sourceCode);
+        $cached = $this->cache()->get($key);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         foreach ($this->scopedConnections($sourceCode) as $db) {
             if ($db->tableExists($table)) {
                 $fields = $db->getFieldNames($table);
+                $fields = is_array($fields) ? $fields : null;
 
-                return is_array($fields) ? $fields : null;
+                if ($fields !== null) {
+                    $this->remember($key, $fields);
+                }
+
+                return $fields;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Buang seluruh cache introspeksi (dipanggil saat source
+     * ditambah/diubah/di-toggle/dihapus — daftar union bisa berubah).
+     */
+    public static function flushCache(): void
+    {
+        $cache = self::serviceCache();
+        $index = $cache->get(self::CACHE_INDEX);
+
+        if (is_array($index)) {
+            foreach ($index as $key) {
+                $cache->delete((string) $key);
+            }
+        }
+
+        $cache->delete(self::CACHE_INDEX);
+    }
+
+    private static function serviceCache(): CacheInterface
+    {
+        return Services::cache();
+    }
+
+    private function cache(): CacheInterface
+    {
+        return self::serviceCache();
+    }
+
+    /**
+     * Format key: titik sebagai pemisah — ":" terlarang di cache
+     * key CI (reservedCharacters '{}()/\@:').
+     */
+    private function cacheKey(string $kind, ?string $sourceCode): string
+    {
+        $scope = ($sourceCode === null || $sourceCode === '') ? 'all' : $sourceCode;
+
+        return 'intro_' . str_replace(':', '.', $kind) . '.' . $scope;
+    }
+
+    /**
+     * Simpan + catat ke index supaya flushCache bisa menghapusnya.
+     *
+     * @param string[] $value
+     */
+    private function remember(string $key, array $value): void
+    {
+        $cache = $this->cache();
+        $cache->save($key, $value, self::CACHE_TTL);
+
+        $index = $cache->get(self::CACHE_INDEX);
+        $index = is_array($index) ? $index : [];
+
+        if (! in_array($key, $index, true)) {
+            $index[] = $key;
+        }
+
+        $cache->save(self::CACHE_INDEX, $index, self::CACHE_TTL * 60);
     }
 
     /**

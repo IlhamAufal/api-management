@@ -10,7 +10,7 @@
   <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Execution Logs</h1>
-      <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">Riwayat check freshness (append-only, 200 entri terbaru) dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">check_history</code>.</p>
+      <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">Riwayat check freshness (append-only) dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">check_history</code>, urut terbaru dulu.</p>
     </div>
     <a href="<?= base_url('monitoring') ?>" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
       <i class="fa-solid fa-table-cells" aria-hidden="true"></i>
@@ -19,6 +19,80 @@
   </div>
 
   <section class="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-3 border-b border-gray-100 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
+      <!-- Filter: status + source + trigger (GET; filter tidak valid diabaikan backend). -->
+      <form method="get" class="flex flex-wrap items-center gap-3">
+        <label for="status" class="text-sm font-medium text-gray-600 dark:text-gray-300">Filter</label>
+        <select
+          id="status"
+          name="status"
+          onchange="this.form.submit()"
+          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
+        >
+          <option value="" <?= $statusFilter === null ? 'selected' : '' ?>>Semua status</option>
+          <?php foreach ($statusOptions as $opt): ?>
+            <option value="<?= esc($opt, 'attr') ?>" <?= $statusFilter === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <select
+          id="source"
+          name="source"
+          onchange="this.form.submit()"
+          aria-label="Filter source"
+          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
+        >
+          <option value="" <?= $sourceFilter === null ? 'selected' : '' ?>>Semua source</option>
+          <?php foreach ($sourceOptions as $opt): ?>
+            <option value="<?= esc($opt['code'], 'attr') ?>" <?= $sourceFilter === $opt['code'] ? 'selected' : '' ?>><?= esc($opt['label']) ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <select
+          id="trigger"
+          name="trigger"
+          onchange="this.form.submit()"
+          aria-label="Filter trigger"
+          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
+        >
+          <option value="" <?= $triggerFilter === null ? 'selected' : '' ?>>Semua trigger</option>
+          <?php foreach ($triggerOptions as $opt): ?>
+            <option value="<?= esc($opt, 'attr') ?>" <?= $triggerFilter === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <?php if ($statusFilter !== null || $sourceFilter !== null || $triggerFilter !== null): ?>
+          <a href="<?= base_url('logs') ?>" class="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">Reset</a>
+        <?php endif; ?>
+      </form>
+
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        <?php if ($pagination['total'] > 0): ?>
+          <?= number_format($pagination['total']) ?> baris
+          <?php if ($statusFilter !== null || $sourceFilter !== null || $triggerFilter !== null): ?>
+            (filter:
+            <?php
+            $chips = [];
+            if ($statusFilter !== null) {
+                $chips[] = 'status <code class="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">' . esc($statusFilter) . '</code>';
+            }
+            if ($sourceFilter !== null) {
+                $chips[] = 'source <code class="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">' . esc($sourceFilter) . '</code>';
+            }
+            if ($triggerFilter !== null) {
+                $chips[] = 'trigger <code class="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">' . esc($triggerFilter) . '</code>';
+            }
+            echo implode(', ', $chips);
+            ?>
+            )
+          <?php endif; ?>
+          — halaman <?= $pagination['page'] ?> dari <?= $pagination['totalPages'] ?>
+        <?php else: ?>
+          Tidak ada baris
+        <?php endif; ?>
+      </p>
+    </div>
+
     <div class="overflow-x-auto">
       <table class="w-full min-w-[980px] text-left">
         <thead class="bg-brand-500 text-white">
@@ -38,8 +112,13 @@
             <tr>
               <td colspan="8" class="px-5 py-12 text-center">
                 <i class="fa-solid fa-clock-rotate-left text-2xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
-                <p class="mt-3 font-medium text-gray-700 dark:text-gray-200">Belum ada log check</p>
-                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Tekan "Check All" di Monitoring untuk mulai mengisi riwayat.</p>
+                <?php $hasFilter = $statusFilter !== null || $sourceFilter !== null || $triggerFilter !== null; ?>
+                <p class="mt-3 font-medium text-gray-700 dark:text-gray-200">
+                  <?= $hasFilter ? 'Tidak ada log yang cocok dengan filter' : 'Belum ada log check' ?>
+                </p>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  <?= $hasFilter ? 'Coba ganti atau reset filter.' : 'Tekan "Check All" di Monitoring untuk mulai mengisi riwayat.' ?>
+                </p>
               </td>
             </tr>
           <?php else: ?>
@@ -74,6 +153,45 @@
         </tbody>
       </table>
     </div>
+
+    <?php if ($pagination['totalPages'] > 1): ?>
+      <?php
+        $activeFilters = array_filter([
+            'status'  => $statusFilter,
+            'source'  => $sourceFilter,
+            'trigger' => $triggerFilter,
+        ]);
+        $qs = static function (int $p) use ($activeFilters): string {
+            return '?' . http_build_query($activeFilters + ['page' => $p]);
+        };
+        $base = base_url('logs');
+        $cur  = $pagination['page'];
+        $last = $pagination['totalPages'];
+      ?>
+      <nav class="flex items-center justify-between gap-3 border-t border-gray-100 p-4 dark:border-gray-800" aria-label="Navigasi halaman log">
+        <?php if ($cur > 1): ?>
+          <a href="<?= $base . $qs($cur - 1) ?>" rel="prev" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
+            <i class="fa-solid fa-chevron-left text-xs" aria-hidden="true"></i> Sebelumnya
+          </a>
+        <?php else: ?>
+          <span class="inline-flex items-center gap-2 rounded-lg border border-gray-100 px-3 py-2 text-sm font-semibold text-gray-300 dark:border-gray-800 dark:text-gray-600">
+            <i class="fa-solid fa-chevron-left text-xs" aria-hidden="true"></i> Sebelumnya
+          </span>
+        <?php endif; ?>
+
+        <span class="text-sm text-gray-500 dark:text-gray-400">Halaman <?= $cur ?> / <?= $last ?></span>
+
+        <?php if ($cur < $last): ?>
+          <a href="<?= $base . $qs($cur + 1) ?>" rel="next" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
+            Berikutnya <i class="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>
+          </a>
+        <?php else: ?>
+          <span class="inline-flex items-center gap-2 rounded-lg border border-gray-100 px-3 py-2 text-sm font-semibold text-gray-300 dark:border-gray-800 dark:text-gray-600">
+            Berikutnya <i class="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>
+          </span>
+        <?php endif; ?>
+      </nav>
+    <?php endif; ?>
   </section>
 </div>
 <?= $this->endSection() ?>

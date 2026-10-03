@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\Monitoring\SourceIntrospector;
 use App\Libraries\Monitoring\TableFreshnessChecker;
 use App\Models\SourceModel;
 use App\Models\WatchedTableModel;
@@ -78,6 +79,8 @@ class DatabaseRegistry extends BaseController
         $source = $this->sourceModel->find((int) $inserted);
         $summary = $source !== null ? $this->initialCheck($source) : '';
 
+        SourceIntrospector::flushCache();
+
         return redirect()->to(base_url('databases'))
             ->with('flash_success', 'Database "' . $post['label'] . '" berhasil didaftarkan.'
                 . ($summary !== '' ? ' Check awal: ' . $summary . '.' : ''));
@@ -108,6 +111,8 @@ class DatabaseRegistry extends BaseController
         $source = $this->sourceModel->find((int) $id);
         $summary = $source !== null ? $this->initialCheck($source) : '';
 
+        SourceIntrospector::flushCache();
+
         return redirect()->to(base_url('databases'))
             ->with('flash_success', 'Database "' . $post['label'] . '" berhasil diperbarui.'
                 . ($summary !== '' ? ' Check awal: ' . $summary . '.' : ''));
@@ -128,6 +133,8 @@ class DatabaseRegistry extends BaseController
         $newStatus = (int) $source['is_active'] === 1 ? 0 : 1;
         $this->sourceModel->update((int) $id, ['is_active' => $newStatus]);
 
+        SourceIntrospector::flushCache();
+
         return redirect()->to(base_url('databases'))
             ->with('flash_success', 'Database "' . $source['label'] . '" '
                 . ($newStatus === 1 ? 'diaktifkan' : 'dinonaktifkan') . '.');
@@ -147,6 +154,8 @@ class DatabaseRegistry extends BaseController
         }
 
         $this->sourceModel->update((int) $id, ['is_active' => 0]);
+
+        SourceIntrospector::flushCache();
 
         return redirect()->to(base_url('databases'))
             ->with('flash_success', 'Database "' . $source['label'] . '" dinonaktifkan (soft delete) — riwayat check tetap tersimpan.');

@@ -56,7 +56,7 @@ $value = static function (string $field, string $default = '') use ($source, $ol
         </div>
       </div>
 
-      <div class="grid gap-5 md:grid-cols-2">
+      <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <div>
           <label for="code" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Kode Database <span class="text-error-500">*</span></label>
           <input type="text" id="code" name="code" value="<?= esc($value('code')) ?>" required maxlength="50" placeholder="zona_erp" <?= $isEdit ? 'readonly' : '' ?> pattern="[a-z][a-z0-9_]*" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90 <?= $isEdit ? 'cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-white/[0.02] dark:text-gray-400' : '' ?>" />
@@ -67,11 +67,15 @@ $value = static function (string $field, string $default = '') use ($source, $ol
           <label for="label" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Label <span class="text-error-500">*</span></label>
           <input type="text" id="label" name="label" value="<?= esc($value('label')) ?>" required maxlength="100" placeholder="Zona ERP" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90" />
         </div>
-      </div>
 
-      <div class="mt-5 flex items-center gap-2">
-        <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/20" />
-        <label for="is_active" class="text-sm text-gray-700 dark:text-gray-300">Aktif (ikut check berikutnya)</label>
+        <div>
+          <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Aktif</span>
+          <label for="is_active" class="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
+            <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/20" />
+            Ikut check berikutnya
+          </label>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Nonaktifkan untuk mengecualikan database; riwayat tetap tersimpan.</p>
+        </div>
       </div>
 
       <div class="mt-6 flex flex-wrap items-center gap-3">
