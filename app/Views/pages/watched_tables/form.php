@@ -36,7 +36,7 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
     </a>
   </div>
 
-  <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+  <section class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <form method="post" action="<?= esc($formAction) ?>" class="p-5 md:p-6">
       <?= csrf_field() ?>
 
@@ -56,15 +56,20 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
 
       <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label for="source" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Database (filter introspeksi)</label>
-          <select id="source" name="source" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
-            <option value="">— Semua source —</option>
-            <?php foreach ($sources as $sourceOption): ?>
-              <option value="<?= esc($sourceOption['code']) ?>" <?= $selectedSource === $sourceOption['code'] ? 'selected' : '' ?>>
-                <?= esc($sourceOption['label']) ?> (<?= esc($sourceOption['code']) ?>)
-              </option>
-            <?php endforeach; ?>
-          </select>
+          <?php
+          $sourceChoices = [];
+          foreach ($sources as $sourceOption) {
+              $sourceChoices[$sourceOption['code']] = $sourceOption['label'] . ' (' . $sourceOption['code'] . ')';
+          }
+          ?>
+          <?= view('components/custom_select', ['cs' => [
+              'name'        => 'source',
+              'id'          => 'source',
+              'value'       => $selectedSource,
+              'options'     => $sourceChoices,
+              'placeholder' => '— Semua source —',
+              'label'       => 'Database (filter introspeksi)',
+          ]]) ?>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Menyaring daftar tabel & kolom agar sesuai database terpilih. Registrasi tetap berlaku untuk semua source aktif.</p>
         </div>
 
@@ -74,23 +79,30 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
         </div>
 
         <div>
-          <label for="table_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Tabel <span class="text-error-500">*</span></label>
-          <select id="table_name" name="table_name" required class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
-            <option value="">— pilih tabel —</option>
-            <?php foreach ($tableOptions as $name): ?>
-              <option value="<?= esc($name) ?>" <?= $currentTable === $name ? 'selected' : '' ?>><?= esc($name) ?></option>
-            <?php endforeach; ?>
-          </select>
+          <?= view('components/custom_select', ['cs' => [
+              'name'        => 'table_name',
+              'id'          => 'table_name',
+              'value'       => $currentTable,
+              'options'     => $tableOptions,
+              'placeholder' => '— pilih tabel —',
+              'label'       => 'Nama Tabel <span class="text-error-500">*</span>',
+              'required'    => true,
+          ]]) ?>
           <?php if (empty($allTables)): ?>
             <p class="mt-1.5 text-xs text-warning-600">Tidak ada source aktif yang bisa diintrospeksi — periksa konfigurasi koneksi.</p>
           <?php endif; ?>
         </div>
 
         <div>
-          <label for="sync_column" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Sync Column <span class="text-error-500">*</span></label>
-          <select id="sync_column" name="sync_column" required class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
-            <option value="">— pilih tabel dulu —</option>
-          </select>
+          <?= view('components/custom_select', ['cs' => [
+              'name'        => 'sync_column',
+              'id'          => 'sync_column',
+              'value'       => $value('sync_column'),
+              'options'     => [],
+              'placeholder' => '— pilih tabel dulu —',
+              'label'       => 'Sync Column <span class="text-error-500">*</span>',
+              'required'    => true,
+          ]]) ?>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Kolom waktu penanda sinkron; opsi diisi otomatis dari kolom tabel terpilih.</p>
         </div>
 

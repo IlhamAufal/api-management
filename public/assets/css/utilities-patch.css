@@ -26,6 +26,9 @@
 .gap-2\.5 { gap: calc(var(--spacing) * 2.5); }
 .gap-3\.5 { gap: calc(var(--spacing) * 3.5); }
 .m-0 { margin: 0; }
+.mt-1\.5 { margin-top: calc(var(--spacing) * 1.5); }
+.mb-1\.5 { margin-bottom: calc(var(--spacing) * 1.5); }
+.w-44 { width: calc(var(--spacing) * 44); }
 .max-w-\[130px\] { max-width: 130px; }
 
 /* --- Typography ---------------------------------------------------------- */
@@ -39,6 +42,7 @@
 .backdrop-blur-sm { backdrop-filter: blur(8px); }
 .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
 .focus\:ring-2:focus { box-shadow: 0 0 0 2px var(--tw-ring-color, rgb(59 130 246 / 0.5)); }
+.focus\:ring-4:focus { box-shadow: 0 0 0 4px var(--tw-ring-color, rgb(70 95 255 / 0.1)); }
 .focus\:ring-red-500\/30:focus { --tw-ring-color: rgb(239 68 68 / 0.3); }
 
 /* --- Colors (navbar, pill status, tombol logout) ------------------------- */
@@ -86,6 +90,8 @@
 .border-error-400 { border-color: #f97066; }
 .focus\:ring-brand-500\/20:focus { --tw-ring-color: color-mix(in oklab, var(--color-brand-500) 20%, transparent); }
 .focus\:ring-brand-500\/30:focus { --tw-ring-color: color-mix(in oklab, var(--color-brand-500) 30%, transparent); }
+.focus\:border-brand-500:focus { border-color: var(--color-brand-500, #465fff); }
+.hover\:border-gray-300:hover { border-color: var(--color-gray-300, #d0d5dd); }
 
 /* --- Hover states (tombol aksi, tombol kembali) -------------------------- */
 .hover\:bg-brand-50:hover { background-color: var(--color-brand-50); }
@@ -530,4 +536,273 @@
   background-color: rgb(255 255 255 / 0.12);
   color: #f1f5f9;
 }
+
+/* ===========================================================================
+ * Batch 7 — Custom select (app/Views/components/custom_select.php)
+ * ---------------------------------------------------------------------------
+ * Dipanggil dari view:
+ *
+ *   <?= view('components/custom_select', [
+ *         'name'        => 'status',
+ *         'value'       => $statusFilter ?? '',
+ *         'options'     => $statusOptions,
+ *         'placeholder' => 'Semua status',
+ *         'label'       => 'Filter status',   // HTML mentah, opsional
+ *         'size'        => 'sm',               // md (default) | sm
+ *         'class'       => 'w-44',             // lebar wrapper, default w-full
+ *         'onchange'    => 'this.form.submit()',
+ *   ]) ?>
+ *
+ * Struktur yang dirender:
+ *
+ *   <div class="cs-select w-44 cs-select--sm" x-data="customDropdownSelect({...})">
+ *     <label class="cs-select__label" for="{id}__trigger">…</label>
+ *     <select class="custom-select-native">…</select>
+ *     <button class="cs-select__btn" id="{id}__trigger">…</button>
+ *     <div class="cs-select__menu" x-show="open">…</div>
+ *   </div>
+ *
+ * Utility yang dulu dipakai komponen (focus:ring-4, z-[100], shadow-xl,
+ * max-h-60, scale-98, placeholder-gray-400, dst.) tidak ikut ter-compile di
+ * style.css, sehingga seluruh style komponen didefinisikan scoped di sini.
+ * =========================================================================== */
+
+[x-cloak] { display: none !important; }
+
+/* --- Container & label --------------------------------------------------- */
+.cs-select { position: relative; }
+
+.cs-select__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--color-gray-700, #344054);
+  cursor: pointer;
+}
+
+.dark .cs-select__label { color: var(--color-gray-300, #d0d5dd); }
+
+/* --- Trigger button ------------------------------------------------------ */
+.cs-select__btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-align: left;
+  color: var(--color-gray-800, #1d2939);
+  background-color: #ffffff;
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.cs-select--sm .cs-select__btn { padding: 8px 12px; }
+
+.cs-select__btn:hover:not(:disabled) { border-color: var(--color-gray-300, #d0d5dd); }
+
+.cs-select__btn:focus,
+.cs-select__btn.is-open {
+  border-color: var(--color-brand-500, #465fff);
+  box-shadow: 0 0 0 4px rgb(70 95 255 / 0.1);
+  outline: none;
+}
+
+.cs-select__btn:disabled {
+  cursor: not-allowed;
+  background-color: var(--color-gray-50, #f9fafb);
+  opacity: 0.6;
+}
+
+.cs-select__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-select__value.is-placeholder { color: var(--color-gray-400, #98a2b3); }
+
+.cs-select__caret {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--color-gray-400, #98a2b3);
+  transition: transform 0.2s ease;
+}
+
+.cs-select__caret.is-open { transform: rotate(180deg); }
+
+/* --- Popover menu -------------------------------------------------------- */
+.cs-select__menu {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 100;
+  width: 100%;
+  min-width: 200px;
+  margin-top: 6px;
+  padding: 6px;
+  overflow: hidden;
+  background-color: #ffffff;
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Transisi Alpine (x-transition) — kelas Tailwind scale-98/translate tidak
+ * ikut ter-compile, jadi dipakai kelas scoped .cs-tr*. */
+.cs-tr { transition: opacity 0.15s ease, transform 0.15s ease; }
+.cs-tr-out { opacity: 0; transform: translateY(-4px) scale(0.98); }
+.cs-tr-in { opacity: 1; transform: translateY(0) scale(1); }
+
+/* --- Search box ---------------------------------------------------------- */
+.cs-select__search {
+  position: relative;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-gray-100, #f2f4f7);
+}
+
+.cs-select__search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-gray-400, #98a2b3);
+  pointer-events: none;
+}
+
+.cs-select__search input {
+  width: 100%;
+  padding: 6px 8px 6px 30px;
+  font-size: 12px;
+  color: var(--color-gray-700, #344054);
+  background-color: var(--color-gray-50, #f9fafb);
+  border-radius: 8px;
+  outline: none;
+}
+
+.cs-select__search input::placeholder { color: var(--color-gray-400, #98a2b3); }
+
+.cs-select__search input:focus {
+  background-color: #ffffff;
+  box-shadow: 0 0 0 1px var(--color-brand-500, #465fff);
+}
+
+/* --- Options ------------------------------------------------------------- */
+.cs-select__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.cs-select__opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-gray-700, #344054);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cs-select__opt:hover,
+.cs-select__opt:focus {
+  background-color: var(--color-gray-50, #f9fafb);
+  color: var(--color-gray-900, #101828);
+  outline: none;
+}
+
+.cs-select__opt.is-selected,
+.cs-select__opt.is-selected:hover {
+  background-color: var(--color-brand-50, #ecf3ff);
+  color: var(--color-brand-600, #3641f5);
+  font-weight: 500;
+}
+
+.cs-select__opt.is-selected:hover { background-color: var(--color-brand-100, #dde9ff); }
+
+.cs-select__opt-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-select__check { flex-shrink: 0; font-size: 12px; }
+
+.cs-select__empty {
+  padding: 12px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--color-gray-400, #98a2b3);
+}
+
+/* --- Dark mode ------------------------------------------------------------ */
+.dark .cs-select__btn {
+  background-color: rgb(16 24 40 / 0.6);
+  border-color: var(--color-gray-700, #344054);
+  color: var(--color-gray-200, #e4e7ec);
+}
+
+.dark .cs-select__btn:hover:not(:disabled) { border-color: var(--color-gray-600, #475467); }
+
+.dark .cs-select__btn:disabled {
+  background-color: rgb(16 24 40 / 0.4);
+  color: var(--color-gray-400, #98a2b3);
+}
+
+.dark .cs-select__value.is-placeholder { color: var(--color-gray-500, #667085); }
+.dark .cs-select__caret { color: var(--color-gray-500, #667085); }
+
+.dark .cs-select__menu {
+  background-color: var(--color-gray-800, #1d2939);
+  border-color: var(--color-gray-700, #344054);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+
+.dark .cs-select__search { border-bottom-color: rgb(52 64 84 / 0.6); }
+
+.dark .cs-select__search input {
+  background-color: rgb(16 24 40 / 0.6);
+  color: var(--color-gray-200, #e4e7ec);
+}
+
+.dark .cs-select__search input::placeholder { color: var(--color-gray-500, #667085); }
+.dark .cs-select__search input:focus { background-color: rgb(16 24 40 / 0.9); }
+
+.dark .cs-select__opt { color: var(--color-gray-300, #d0d5dd); }
+
+.dark .cs-select__opt:hover,
+.dark .cs-select__opt:focus {
+  background-color: rgb(255 255 255 / 0.06);
+  color: #f1f5f9;
+}
+
+.dark .cs-select__opt.is-selected,
+.dark .cs-select__opt.is-selected:hover {
+  background-color: rgb(70 95 255 / 0.15);
+  color: var(--color-brand-400, #7592ff);
+}
+
+.dark .cs-select__opt.is-selected:hover { background-color: rgb(70 95 255 / 0.25); }
+
+.dark .cs-select__empty { color: var(--color-gray-500, #667085); }
 

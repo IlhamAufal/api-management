@@ -225,6 +225,36 @@ class SourceIntrospector
     }
 
     /**
+     * Kode source aktif yang secara fisik memiliki tabel ini.
+     * Dipakai registry UI untuk menampilkan kolom "Source" dan
+     * mengekspansi satu watched_table jadi satu baris per source.
+     *
+     * Source yang gagal diintrospeksi di-skip (bukan error) supaya
+     * UI tetap jalan saat salah satu source down.
+     *
+     * @return string[] daftar code source (urut sesuai activeConnections)
+     */
+    public function sourcesContainingTable(string $table): array
+    {
+        if ($table === '' || ! TableFreshnessChecker::isValidIdentifier($table)) {
+            return [];
+        }
+
+        $codes = [];
+        foreach ($this->activeConnections() as $code => $db) {
+            try {
+                if ($db->tableExists($table)) {
+                    $codes[] = (string) $code;
+                }
+            } catch (Throwable $e) {
+                // source bermasalah — abaikan, jangan gagalkan UI
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
      * Validasi registrasi watched_table:
      * - table_name harus ada di minimal satu source aktif
      * - sync_column harus ada di tabel itu pada minimal satu source

@@ -30,6 +30,7 @@ $statusMap = [
         <thead class="bg-brand-500 text-white">
           <tr>
             <th class="px-5 py-3 text-sm font-semibold">Tabel</th>
+            <th class="px-5 py-3 text-sm font-semibold">Source</th>
             <th class="px-5 py-3 text-sm font-semibold">Label</th>
             <th class="px-5 py-3 text-sm font-semibold">Sync Column</th>
             <th class="px-5 py-3 text-right text-sm font-semibold">Stale After</th>
@@ -40,7 +41,7 @@ $statusMap = [
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
           <?php if (empty($tables)): ?>
             <tr>
-              <td colspan="6" class="px-5 py-12 text-center">
+              <td colspan="7" class="px-5 py-12 text-center">
                 <i class="fa-solid fa-table-list text-2xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
                 <p class="mt-3 font-medium text-gray-700 dark:text-gray-200">Belum ada watched table</p>
                 <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Daftarkan tabel pertama dengan tombol "Tambah Tabel".</p>
@@ -52,6 +53,20 @@ $statusMap = [
               <?php $status = $statusMap[(int) $table['is_active']] ?? $statusMap[0]; ?>
               <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
                 <td class="px-5 py-4"><code class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"><?= esc($table['table_name']) ?></code></td>
+                <td class="px-5 py-4">
+                  <?php if (! empty($table['source_code'])): ?>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-400">
+                      <i class="fa-solid fa-database text-[10px]" aria-hidden="true"></i>
+                      <?= esc($table['source_label']) ?>
+                      <span class="text-brand-400 dark:text-brand-500">(<?= esc($table['source_code']) ?>)</span>
+                    </span>
+                  <?php else: ?>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400" title="Tabel tidak ditemukan di source aktif manapun">
+                      <i class="fa-solid fa-circle-question text-[10px]" aria-hidden="true"></i>
+                      Tidak ditemukan
+                    </span>
+                  <?php endif; ?>
+                </td>
                 <td class="px-5 py-4 font-semibold text-gray-800 dark:text-white/90"><?= esc($table['label']) ?></td>
                 <td class="px-5 py-4"><code class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"><?= esc($table['sync_column']) ?></code></td>
                 <td class="px-5 py-4 text-right font-mono text-sm text-gray-700 dark:text-gray-200"><?= number_format((int) $table['stale_after_minutes']) ?> mnt</td>

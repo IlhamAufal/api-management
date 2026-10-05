@@ -23,44 +23,49 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <!-- Filter: status + source + trigger (GET; filter tidak valid diabaikan backend). -->
       <form method="get" class="flex flex-wrap items-center gap-3">
-        <label for="status" class="text-sm font-medium text-gray-600 dark:text-gray-300">Filter</label>
-        <select
-          id="status"
-          name="status"
-          onchange="this.form.submit()"
-          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
-        >
-          <option value="" <?= $statusFilter === null ? 'selected' : '' ?>>Semua status</option>
-          <?php foreach ($statusOptions as $opt): ?>
-            <option value="<?= esc($opt, 'attr') ?>" <?= $statusFilter === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Filter</span>
 
-        <select
-          id="source"
-          name="source"
-          onchange="this.form.submit()"
-          aria-label="Filter source"
-          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
-        >
-          <option value="" <?= $sourceFilter === null ? 'selected' : '' ?>>Semua source</option>
-          <?php foreach ($sourceOptions as $opt): ?>
-            <option value="<?= esc($opt['code'], 'attr') ?>" <?= $sourceFilter === $opt['code'] ? 'selected' : '' ?>><?= esc($opt['label']) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <?= view('components/custom_select', ['cs' => [
+            'name'        => 'status',
+            'id'          => 'status',
+            'value'       => $statusFilter ?? '',
+            'options'     => $statusOptions,
+            'placeholder' => 'Semua status',
+            'size'        => 'sm',
+            'class'       => 'w-44',
+            'onchange'    => 'this.form.submit()',
+            'attributes'  => 'aria-label="Filter status"',
+        ]]) ?>
 
-        <select
-          id="trigger"
-          name="trigger"
-          onchange="this.form.submit()"
-          aria-label="Filter trigger"
-          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
-        >
-          <option value="" <?= $triggerFilter === null ? 'selected' : '' ?>>Semua trigger</option>
-          <?php foreach ($triggerOptions as $opt): ?>
-            <option value="<?= esc($opt, 'attr') ?>" <?= $triggerFilter === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <?php
+        $sourceChoices = [];
+        foreach ($sourceOptions as $opt) {
+            $sourceChoices[$opt['code']] = $opt['label'];
+        }
+        ?>
+        <?= view('components/custom_select', ['cs' => [
+            'name'        => 'source',
+            'id'          => 'source',
+            'value'       => $sourceFilter ?? '',
+            'options'     => $sourceChoices,
+            'placeholder' => 'Semua source',
+            'size'        => 'sm',
+            'class'       => 'w-44',
+            'onchange'    => 'this.form.submit()',
+            'attributes'  => 'aria-label="Filter source"',
+        ]]) ?>
+
+        <?= view('components/custom_select', ['cs' => [
+            'name'        => 'trigger',
+            'id'          => 'trigger',
+            'value'       => $triggerFilter ?? '',
+            'options'     => $triggerOptions,
+            'placeholder' => 'Semua trigger',
+            'size'        => 'sm',
+            'class'       => 'w-44',
+            'onchange'    => 'this.form.submit()',
+            'attributes'  => 'aria-label="Filter trigger"',
+        ]]) ?>
 
         <?php if ($statusFilter !== null || $sourceFilter !== null || $triggerFilter !== null): ?>
           <a href="<?= base_url('logs') ?>" class="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">Reset</a>

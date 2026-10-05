@@ -48,18 +48,18 @@ final class ExecutionLogsPaginationTest extends CIUnitTestCase
         return $params === [] ? 'logs' : 'logs?' . http_build_query($params);
     }
 
-    public function testFirstPageShowsAtMost20RowsWhenMoreExist()
+    public function testFirstPageShowsAtMost10RowsWhenMoreExist()
     {
         $this->seedHistory(25);
 
         $result = $this->withSession($this->authSession())->get('logs');
 
         $result->assertOK();
-        // 25 baris total, 20 per halaman -> halaman 1 dari 2.
+        // 25 baris total, 10 per halaman -> halaman 1 dari 3.
         $this->assertBodySee('25 baris', $result);
-        $this->assertBodySee('halaman 1 dari 2', $result);
+        $this->assertBodySee('halaman 1 dari 3', $result);
         $this->assertBodySee('1,000', $result);   // terbaru, halaman 1
-        $this->assertBodyNotSee('1,024', $result); // tertua, halaman 2
+        $this->assertBodyNotSee('1,010', $result); // baris ke-11, halaman 2
         $this->assertBodySee('Berikutnya', $result);
     }
 
@@ -70,8 +70,9 @@ final class ExecutionLogsPaginationTest extends CIUnitTestCase
         $result = $this->withSession($this->authSession())->get($this->logsUrl(['page' => 2]));
 
         $result->assertOK();
-        $this->assertBodySee('halaman 2 dari 2', $result);
-        $this->assertBodySee('1,024', $result);
+        $this->assertBodySee('halaman 2 dari 3', $result);
+        $this->assertBodySee('1,010', $result);
+        $this->assertBodyNotSee('1,020', $result); // baris ke-21, halaman 3
         $this->assertBodySee('Sebelumnya', $result);
     }
 
@@ -82,7 +83,7 @@ final class ExecutionLogsPaginationTest extends CIUnitTestCase
         $result = $this->withSession($this->authSession())->get($this->logsUrl(['page' => 99]));
 
         $result->assertOK();
-        $this->assertBodySee('halaman 2 dari 2', $result);
+        $this->assertBodySee('halaman 3 dari 3', $result);
         $this->assertBodySee('1,024', $result);
     }
 

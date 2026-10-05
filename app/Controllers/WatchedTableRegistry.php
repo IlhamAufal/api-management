@@ -28,10 +28,40 @@ class WatchedTableRegistry extends BaseController
 
     public function index()
     {
+        $watched = $this->watchedModel->orderBy('id', 'ASC')->findAll();
+
+        // Peta code => label source aktif (untuk tampilan kolom Source).
+        $sourceLabels = [];
+        foreach ((new SourceModel())->getActiveSources() as $source) {
+            $sourceLabels[(string) $source['code']] = (string) $source['label'];
+        }
+
+        // Ekspansi tiap watched_table menjadi satu baris per source yang
+        // secara fisik memuat tabel tersebut. Beda source = beda baris
+        // (duplikasi antar source memang diharapkan). Tabel yang tidak
+        // ditemukan di source aktif manapun tetap tampil satu baris
+        // dengan source kosong supaya tidak hilang diam-diam.
+        $rows = [];
+        foreach ($watched as $table) {
+            $codes = $this->introspector->sourcesContainingTable((string) $table['table_name']);
+
+            if ($codes === []) {
+                $rows[] = $table + ['source_code' => null, 'source_label' => null];
+                continue;
+            }
+
+            foreach ($codes as $code) {
+                $rows[] = $table + [
+                    'source_code'  => $code,
+                    'source_label' => $sourceLabels[$code] ?? $code,
+                ];
+            }
+        }
+
         return view('pages/watched_tables/index', [
             'title'      => 'Watched Tables | MD-Bridge',
             'page'       => 'watched_tables',
-            'tables'     => $this->watchedModel->orderBy('id', 'ASC')->findAll(),
+            'tables'     => $rows,
             'flashSuccess' => session()->getFlashdata('flash_success'),
             'flashError'   => session()->getFlashdata('flash_error'),
         ]);

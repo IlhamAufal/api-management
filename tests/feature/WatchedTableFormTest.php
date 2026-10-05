@@ -38,6 +38,24 @@ final class WatchedTableFormTest extends CIUnitTestCase
         $this->assertGreaterThan(0, $id);
     }
 
+    public function testIndexRendersSourceColumnAndBadges()
+    {
+        $tableId  = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        $sourceId = $this->sourceId('npd');
+
+        $this->insertSnapshot([
+            'watched_table_id' => $tableId,
+            'source_id'        => $sourceId,
+            'status'           => 'OK',
+        ]);
+
+        $result = $this->withSession($this->authSession())->get('watched-tables');
+
+        $result->assertOK();
+        $this->assertBodySee('Source', $result);
+        $this->assertBodySee('npd', $result);
+    }
+
     public function testCreateFormShowsSourceTablesInDropdown()
     {
         $result = $this->withSession($this->authSession())->get('watched-tables/new');

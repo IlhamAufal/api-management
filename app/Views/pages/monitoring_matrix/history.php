@@ -57,18 +57,18 @@
   <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <div class="flex flex-col gap-3 border-b border-gray-100 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
       <form method="get" class="flex flex-wrap items-center gap-2">
-        <label for="status" class="text-sm font-medium text-gray-600 dark:text-gray-300">Filter status</label>
-        <select
-          id="status"
-          name="status"
-          onchange="this.form.submit()"
-          class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
-        >
-          <option value="" <?= $statusFilter === null ? 'selected' : '' ?>>Semua status</option>
-          <?php foreach ($statusOptions as $opt): ?>
-            <option value="<?= esc($opt, 'attr') ?>" <?= $statusFilter === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Filter status</span>
+        <?= view('components/custom_select', ['cs' => [
+            'name'        => 'status',
+            'id'          => 'status',
+            'value'       => $statusFilter ?? '',
+            'options'     => $statusOptions,
+            'placeholder' => 'Semua status',
+            'size'        => 'sm',
+            'class'       => 'w-44',
+            'onchange'    => 'this.form.submit()',
+            'attributes'  => 'aria-label="Filter status"',
+        ]]) ?>
         <?php if ($statusFilter !== null): ?>
           <a href="<?= base_url('monitoring/history/' . $table['id'] . '/' . $source['id']) ?>" class="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">Reset</a>
         <?php endif; ?>

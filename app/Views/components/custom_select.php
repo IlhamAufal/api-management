@@ -6,30 +6,59 @@
  * namun tetap membungkus native <select> di baliknya untuk kompatibilitas
  * 100% terhadap form POST, browser validation, dan manipulasi JavaScript.
  *
- * @var string            $name        Nama form field (required)
- * @var string|null       $id          ID elemen (default sama dengan $name)
- * @var mixed             $value       Nilai terpilih saat ini
- * @var array             $options     Array opsi (bisa list [val], assoc [val => label], atau [['value'=>..., 'label'=>...]])
- * @var string|null       $placeholder Placeholder teks bila kosong (default null)
- * @var bool|null         $required    Wajib diisi atau tidak (default false)
- * @var bool|null         $disabled    Disabled atau tidak (default false)
- * @var string|null       $class       Class CSS container tambahan (misal 'w-full' atau 'w-44')
- * @var string|null       $btnClass    Class CSS khusus trigger button (opsional override)
- * @var string|null       $onchange    Atribut onchange pada native select (misal 'this.form.submit()')
- * @var string|null       $attributes  Atribut HTML mentah tambahan (misal 'aria-label="..."')
- * @var bool|null         $searchable  Paksa aktifkan pencarian (otomatis true bila opsi >= 8)
+ * Style komponen didefinisikan scoped (.cs-select*) di
+ * public/assets/css/utilities-patch.css (Batch 7).
+ *
+ * Cara pakai — semua argumen dikirim sebagai SATU array di key `cs`:
+ *
+ *   <?= view('components/custom_select', ['cs' => [
+ *       'name'        => 'status',          // wajib: nama form field
+ *       'value'       => $status ?? '',     // wajib: nilai terpilih
+ *       'options'     => $statusOptions,    // wajib: list/assoc/[['value','label']]
+ *       'placeholder' => 'Semua status',    // opsional
+ *       'label'       => 'Nama Tabel <span class="text-error-500">*</span>', // opsional, HTML mentah
+ *       'required'    => true,              // opsional (default false)
+ *       'disabled'    => false,             // opsional (default false)
+ *       'id'          => 'status',          // opsional (default = name)
+ *       'size'        => 'sm',              // opsional: 'md' (default) | 'sm'
+ *       'class'       => 'w-44',            // opsional: class wrapper (default w-full)
+ *       'btnClass'    => '',                // opsional: class tambahan tombol
+ *       'onchange'    => 'this.form.submit()',
+ *       'attributes'  => 'aria-label="Filter source"',
+ *       'searchable'  => true,              // opsional (default: otomatis bila opsi >= 8)
+ *   ]) ?>
+ *
+ * Dipakai lewat satu key `cs` karena Config\View::$saveData = true: data yang
+ * dikirim ke satu render ikut bocor ke render berikutnya, sehingga argumen
+ * opsional yang tidak dikirim bisa mewarisi nilai dari render sebelumnya.
  */
+$cs = is_array($cs ?? null) ? $cs : [];
 
-$id          = $id ?? $name;
-$value       = (string) ($value ?? '');
-$required    = ! empty($required);
-$disabled    = ! empty($disabled);
-$placeholder = $placeholder ?? null;
-$options     = $options ?? [];
-$class       = $class ?? 'w-full';
-$onchange    = $onchange ?? null;
-$attributes  = $attributes ?? '';
-$searchable  = isset($searchable) ? (bool) $searchable : null;
+$name        = (string) ($cs['name'] ?? '');
+$id          = (string) ($cs['id'] ?? $name);
+$value       = (string) ($cs['value'] ?? '');
+$placeholder = $cs['placeholder'] ?? null;
+$options     = $cs['options'] ?? [];
+$label       = $cs['label'] ?? null;
+$required    = ! empty($cs['required']);
+$disabled    = ! empty($cs['disabled']);
+$size        = (($cs['size'] ?? 'md') === 'sm') ? 'sm' : 'md';
+$class       = (string) ($cs['class'] ?? 'w-full');
+$btnClass    = (string) ($cs['btnClass'] ?? '');
+$onchange    = $cs['onchange'] ?? null;
+$attributes  = (string) ($cs['attributes'] ?? '');
+$searchable  = array_key_exists('searchable', $cs) && $cs['searchable'] !== null
+    ? (bool) $cs['searchable']
+    : null;
+
+// Ekspresi JS untuk x-data — di-esc ke konteks atribut agar kutipan JSON
+// dari json_encode() tidak menutup atribut x-data lebih awal.
+$jsConfig = 'customDropdownSelect({'
+    . 'value: ' . json_encode($value)
+    . ', placeholder: ' . json_encode((string) ($placeholder ?? ''))
+    . ', disabled: ' . ($disabled ? 'true' : 'false')
+    . ', searchable: ' . ($searchable === null ? 'null' : ($searchable ? 'true' : 'false'))
+    . '})';
 
 // Normalisasi opsi ke struktur [['value' => ..., 'label' => ...]]
 $normalizedOptions = [];
@@ -64,16 +93,16 @@ if ($placeholder !== null && $value === '') {
 }
 ?>
 <div
-  x-data="customDropdownSelect({
-    value: <?= json_encode($value) ?>,
-    placeholder: <?= json_encode($placeholder ?? '') ?>,
-    disabled: <?= $disabled ? 'true' : 'false' ?>,
-    searchable: <?= $searchable !== null ? ($searchable ? 'true' : 'false') : 'null' ?>
-  })"
-  class="relative custom-select-wrapper <?= esc($class) ?>"
+  x-data="<?= esc($jsConfig, 'attr') ?>"
+  class="cs-select<?= $size === 'sm' ? ' cs-select--sm' : '' ?> <?= esc($class) ?>"
   @click.outside="open = false"
-  @keydown.escape.window="open = false"
+  @keydown.escape.window="onEscape()"
 >
+  <?php if ($label !== null && $label !== ''): ?>
+    <!-- Label memicu click pada trigger button (bukan native select yang tersembunyi) -->
+    <label for="<?= esc($id) ?>__trigger" class="cs-select__label"><?= $label ?></label>
+  <?php endif; ?>
+
   <!-- Native select (invisible to user, but functional for form submission & JS access) -->
   <select
     id="<?= esc($id) ?>"
@@ -99,24 +128,22 @@ if ($placeholder !== null && $value === '') {
   <!-- Custom Trigger Button -->
   <button
     type="button"
+    id="<?= esc($id) ?>__trigger"
     @click="toggle()"
     :disabled="disabled"
-    class="relative flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-left text-sm text-gray-800 transition duration-150 hover:border-gray-300 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:border-gray-600 dark:disabled:bg-gray-800/40 <?= esc($btnClass ?? '') ?>"
-    :class="{ 'border-brand-500 ring-4 ring-brand-500/10 dark:border-brand-500': open }"
+    class="cs-select__btn<?= $btnClass !== '' ? ' ' . esc($btnClass) : '' ?>"
+    :class="{ 'is-open': open }"
     aria-haspopup="listbox"
     :aria-expanded="open"
   >
     <span
-      class="truncate"
-      :class="{ 'text-gray-400 dark:text-gray-500': (!selected || selected === '') && placeholder }"
+      class="cs-select__value"
+      :class="{ 'is-placeholder': !selectedLabel }"
       x-text="selectedLabel || placeholder || '— Pilih —'"
     ><?= esc($currentLabel !== '' ? $currentLabel : ($placeholder ?? '— Pilih —')) ?></span>
 
-    <span
-      class="pointer-events-none flex shrink-0 items-center text-gray-400 transition-transform duration-200 dark:text-gray-500"
-      :class="{ 'rotate-180': open }"
-    >
-      <i class="fa-solid fa-chevron-down text-xs" aria-hidden="true"></i>
+    <span class="cs-select__caret" :class="{ 'is-open': open }">
+      <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
     </span>
   </button>
 
@@ -124,54 +151,56 @@ if ($placeholder !== null && $value === '') {
   <div
     x-show="open"
     x-cloak
-    x-transition:enter="transition ease-out duration-150"
-    x-transition:enter-start="opacity-0 translate-y-1 scale-98"
-    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-    x-transition:leave="transition ease-in duration-100"
-    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-    x-transition:leave-end="opacity-0 translate-y-1 scale-98"
-    class="absolute left-0 top-full z-[100] mt-1.5 w-full min-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800"
+    x-transition:enter="cs-tr"
+    x-transition:enter-start="cs-tr-out"
+    x-transition:enter-end="cs-tr-in"
+    x-transition:leave="cs-tr"
+    x-transition:leave-start="cs-tr-in"
+    x-transition:leave-end="cs-tr-out"
+    class="cs-select__menu"
     role="listbox"
     style="display: none;"
   >
     <!-- Search Box (shown if searchable or items >= 8) -->
     <template x-if="isSearchable">
-      <div class="mb-1 border-b border-gray-100 p-1 pb-1.5 dark:border-gray-700/60">
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
-          <input
-            type="text"
-            x-model="search"
-            placeholder="Cari..."
-            class="w-full rounded-lg bg-gray-50 py-1.5 pl-8 pr-2 text-xs text-gray-700 placeholder-gray-400 outline-none focus:bg-white focus:ring-1 focus:ring-brand-500 dark:bg-gray-900/60 dark:text-gray-200 dark:placeholder-gray-500"
-            @click.stop
-          />
-        </div>
+      <div class="cs-select__search">
+        <i class="fa-solid fa-magnifying-glass cs-select__search-icon" aria-hidden="true"></i>
+        <input
+          type="text"
+          x-model="search"
+          placeholder="Cari..."
+          aria-label="Cari opsi"
+          @click.stop
+          @keydown.down.prevent="focusOption(0)"
+          @keydown.enter.prevent="selectFirst()"
+        />
       </div>
     </template>
 
     <!-- Options List -->
-    <ul class="max-h-60 overflow-y-auto space-y-0.5 no-scrollbar">
+    <ul class="cs-select__list">
       <template x-for="item in filteredItems" :key="item.value">
         <li
-          @click="selectItem(item.value)"
-          class="group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition"
-          :class="isSelected(item.value)
-            ? 'bg-brand-50 font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400'
-            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-white'"
+          class="cs-select__opt"
+          :class="{ 'is-selected': isSelected(item.value) }"
           role="option"
           :aria-selected="isSelected(item.value)"
+          tabindex="-1"
+          @click="selectItem(item.value)"
+          @keydown.enter.prevent="selectItem(item.value)"
+          @keydown.space.prevent="selectItem(item.value)"
+          @keydown.down.prevent="focusSibling(1)"
+          @keydown.up.prevent="focusSibling(-1)"
+          @keydown.tab="open = false"
         >
-          <span class="truncate" x-text="item.label"></span>
-          <span x-show="isSelected(item.value)" class="ml-2 shrink-0 text-brand-600 dark:text-brand-400">
-            <i class="fa-solid fa-check text-xs" aria-hidden="true"></i>
+          <span class="cs-select__opt-text" x-text="item.label"></span>
+          <span class="cs-select__check" x-show="isSelected(item.value)">
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
           </span>
         </li>
       </template>
       <template x-if="filteredItems.length === 0">
-        <li class="px-3 py-3 text-center text-xs text-gray-400 dark:text-gray-500">
-          Tidak ada opsi yang cocok
-        </li>
+        <li class="cs-select__empty">Tidak ada opsi yang cocok</li>
       </template>
     </ul>
   </div>
@@ -208,8 +237,10 @@ if (typeof window.customDropdownSelect === 'undefined') {
             this.updateSelectedLabel();
           });
 
-          this.selectEl.addEventListener('invalid', () => {
+          this.selectEl.addEventListener('invalid', (e) => {
+            e.preventDefault();
             this.open = true;
+            this.$nextTick(() => this.focusFirst());
           });
 
           this.observer = new MutationObserver(() => {
@@ -266,10 +297,53 @@ if (typeof window.customDropdownSelect === 'undefined') {
         this.open = !this.open;
         if (this.open) {
           this.search = '';
-          this.$nextTick(() => {
-            const searchInput = this.$el.querySelector('input[type="text"]');
-            if (searchInput) searchInput.focus();
-          });
+          this.$nextTick(() => this.focusFirst());
+        }
+      },
+
+      onEscape() {
+        if (!this.open) return;
+        this.open = false;
+        this.focusTrigger();
+      },
+
+      focusTrigger() {
+        const btn = this.$el.querySelector('.cs-select__btn');
+        if (btn) btn.focus();
+      },
+
+      optionEls() {
+        return Array.from(this.$el.querySelectorAll('.cs-select__opt'));
+      },
+
+      focusFirst() {
+        const searchInput = this.$el.querySelector('.cs-select__search input');
+        if (searchInput) {
+          searchInput.focus();
+          return;
+        }
+        const opts = this.optionEls();
+        if (opts.length) opts[0].focus();
+      },
+
+      focusOption(index) {
+        const opts = this.optionEls();
+        if (!opts.length) return;
+        const i = Math.max(0, Math.min(index, opts.length - 1));
+        opts[i].focus();
+      },
+
+      focusSibling(delta) {
+        const opts = this.optionEls();
+        if (!opts.length) return;
+        const current = opts.indexOf(document.activeElement);
+        const next = current === -1 ? 0 : (current + delta + opts.length) % opts.length;
+        opts[next].focus();
+      },
+
+      selectFirst() {
+        if (this.filteredItems.length) {
+          this.selectItem(this.filteredItems[0].value);
         }
       },
 
@@ -277,14 +351,13 @@ if (typeof window.customDropdownSelect === 'undefined') {
         this.selected = val;
         if (this.selectEl) {
           this.selectEl.value = val;
+          // Event 'change' sudah memicu handler inline onchange di native select.
           this.selectEl.dispatchEvent(new Event('change', { bubbles: true }));
           this.selectEl.dispatchEvent(new Event('input', { bubbles: true }));
-          if (typeof this.selectEl.onchange === 'function') {
-            this.selectEl.onchange();
-          }
         }
         this.updateSelectedLabel();
         this.open = false;
+        this.focusTrigger();
       },
 
       isSelected(val) {
