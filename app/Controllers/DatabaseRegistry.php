@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\MarkdownLite;
 use App\Libraries\Monitoring\SourceIntrospector;
 use App\Libraries\Monitoring\TableFreshnessChecker;
 use App\Models\SourceModel;
@@ -49,7 +50,7 @@ class DatabaseRegistry extends BaseController
 
     public function create()
     {
-        return $this->renderForm(null);
+        return $this->renderForm(null, $this->tutorialHtml());
     }
 
     public function edit($id)
@@ -308,7 +309,7 @@ class DatabaseRegistry extends BaseController
         ];
     }
 
-    private function renderForm(?array $source): string
+    private function renderForm(?array $source, ?string $tutorial = null): string
     {
         $oldFlash = session()->getFlashdata('_ci_old_input');
         $oldInput = [];
@@ -327,7 +328,30 @@ class DatabaseRegistry extends BaseController
                 : base_url('databases'),
             'isEdit'     => $source !== null,
             'cancelUrl'  => base_url('databases'),
+            'tutorial'   => $tutorial,
         ]);
+    }
+
+    /**
+     * Tutorial tambah database — di-parse dari markdown (single source
+     * of truth di docs/, dokumen yang sama bisa diupload terpisah).
+     * Bila file tidak ada, form tetap tampil tanpa panel tutorial.
+     */
+    private function tutorialHtml(): ?string
+    {
+        $path = ROOTPATH . 'docs' . DIRECTORY_SEPARATOR . 'TUTORIAL-TAMBAH-DATABASE.md';
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $markdown = file_get_contents($path);
+
+        if ($markdown === false || trim($markdown) === '') {
+            return null;
+        }
+
+        return MarkdownLite::toHtml($markdown);
     }
 
     private function normalizedPost(): array

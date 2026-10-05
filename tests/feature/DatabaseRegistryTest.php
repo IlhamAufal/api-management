@@ -70,6 +70,49 @@ final class DatabaseRegistryTest extends CIUnitTestCase
         $this->assertBodySee('readonly', $result);
     }
 
+    public function testCreateFormRendersParsedTutorialPanel()
+    {
+        $result = $this->withSession($this->authSession())->get('databases/new');
+
+        $result->assertOK();
+        $this->assertBodySee('Tutorial: cara menambahkan database baru', $result);
+        $this->assertBodySee('docs/TUTORIAL-TAMBAH-DATABASE.md', $result);
+        // Isi markdown terparse: code fence group config + snippet .env + section akhir.
+        $this->assertBodySee('public $zona_erp', $result);
+        $this->assertBodySee('database.zona_erp.hostname', $result);
+        $this->assertBodySee('Checklist singkat', $result);
+    }
+
+    public function testEditFormOmitsTutorialPanel()
+    {
+        $id = $this->insertSource(['code' => 'zona_edit_sans_tutorial', 'label' => 'Zona']);
+
+        $result = $this->withSession($this->authSession())->get('databases/edit/' . $id);
+
+        $result->assertOK();
+        $this->assertBodyNotSee('docs/TUTORIAL-TAMBAH-DATABASE.md', $result);
+        $this->assertBodyNotSee('Tutorial: cara menambahkan database baru', $result);
+    }
+
+    public function testActiveFieldRendersExplicitToggleControl()
+    {
+        $result = $this->withSession($this->authSession())->get('databases/new');
+
+        $result->assertOK();
+        $this->assertBodySee('class="toggle-track"', $result);
+        $this->assertBodySee('class="toggle-state" data-on="Aktif" data-off="Nonaktif"', $result);
+        $this->assertBodySee('peer sr-only', $result);
+
+        // Checklist: utility .sr-only & .toggle-state wajib ada di CSS yang
+        // disajikan — .sr-only hilang dari build Tailwind v4 (checkbox native
+        // sempat tampil bersama toggle → ambigu).
+        $css = file_get_contents(ROOTPATH . 'public/assets/css/utilities-patch.css');
+        $this->assertIsString($css);
+        $this->assertStringContainsString('.sr-only {', $css);
+        $this->assertStringContainsString('.toggle-state {', $css);
+        $this->assertStringContainsString('content: attr(data-on)', $css);
+    }
+
     public function testUnauthenticatedUserIsRedirectedToLogin()
     {
         $result = $this->get('databases');

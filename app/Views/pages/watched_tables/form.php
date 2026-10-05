@@ -102,8 +102,10 @@ if ($currentTable !== '' && ! in_array($currentTable, $tableOptions, true)) {
         <div>
           <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Aktif</span>
           <label for="is_active" class="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
-            <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/20" />
+            <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="peer sr-only" />
+            <span class="toggle-track" aria-hidden="true"></span>
             Ikut check berikutnya
+            <span class="toggle-state" data-on="Aktif" data-off="Nonaktif" aria-hidden="true"></span>
           </label>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Nonaktifkan untuk mengecualikan tabel; riwayat tetap tersimpan.</p>
         </div>

@@ -29,6 +29,52 @@ $value = static function (string $field, string $default = '') use ($source, $ol
     </a>
   </div>
 
+  <?php if (! empty($tutorial)): ?>
+    <style>
+      .tutorial-md { line-height: 1.65; }
+      .tutorial-md h1 { font-size: 1.25rem; font-weight: 700; margin: 1rem 0 .5rem; color: #1e293b; }
+      .tutorial-md h2 { font-size: 1.05rem; font-weight: 700; margin: 1.25rem 0 .5rem; color: #1e293b; border-left: 3px solid #6366f1; padding-left: .6rem; }
+      .tutorial-md h3 { font-size: .95rem; font-weight: 600; margin: 1rem 0 .4rem; color: #334155; }
+      .tutorial-md p { margin: .55rem 0; }
+      .tutorial-md ul, .tutorial-md ol { margin: .55rem 0; padding-left: 1.4rem; }
+      .tutorial-md ol { list-style: decimal; }
+      .tutorial-md ul { list-style: disc; }
+      .tutorial-md li { margin: .3rem 0; }
+      .tutorial-md li.tutorial-check { list-style: none; margin-left: -1.1rem; display: flex; gap: .45rem; align-items: flex-start; }
+      .tutorial-md li.tutorial-check input[type="checkbox"] { width: .95em; height: .95em; margin: 0; accent-color: #64748b; opacity: .7; flex-shrink: 0; cursor: default; }
+      .tutorial-md code.tutorial-code { background: #f1f5f9; border-radius: .25rem; padding: .1rem .3rem; font-size: .8em; font-family: ui-monospace, Consolas, monospace; color: #0f172a; }
+      .tutorial-md pre.tutorial-pre { background: #0f172a; color: #e2e8f0; border-radius: .75rem; padding: .9rem 1rem; overflow-x: auto; margin: .7rem 0; font-size: .8rem; line-height: 1.5; }
+      .tutorial-md pre.tutorial-pre code { font-family: ui-monospace, Consolas, monospace; background: none; color: inherit; }
+      .tutorial-md table.tutorial-table { width: 100%; border-collapse: collapse; margin: .7rem 0; font-size: .82rem; display: block; overflow-x: auto; }
+      .tutorial-md table.tutorial-table th, .tutorial-md table.tutorial-table td { border: 1px solid #e2e8f0; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+      .tutorial-md table.tutorial-table th { background: #f8fafc; font-weight: 600; white-space: nowrap; }
+      .tutorial-md blockquote.tutorial-quote { border-left: 3px solid #cbd5e1; background: #f8fafc; margin: .7rem 0; padding: .55rem .8rem; border-radius: 0 .5rem .5rem 0; color: #475569; font-size: .9em; }
+      .tutorial-md hr.tutorial-hr { border: 0; border-top: 1px dashed #e2e8f0; margin: 1.1rem 0; }
+      .tutorial-md strong { color: #0f172a; }
+      .dark .tutorial-md h1, .dark .tutorial-md h2, .dark .tutorial-md h3 { color: #f1f5f9; }
+      .dark .tutorial-md code.tutorial-code { background: rgba(255,255,255,.08); color: #e2e8f0; }
+      .dark .tutorial-md table.tutorial-table th, .dark .tutorial-md table.tutorial-table td { border-color: #334155; }
+      .dark .tutorial-md table.tutorial-table th { background: rgba(255,255,255,.05); }
+      .dark .tutorial-md blockquote.tutorial-quote { background: rgba(255,255,255,.04); border-left-color: #475569; color: #94a3b8; }
+      .dark .tutorial-md strong { color: #f8fafc; }
+      .dark .tutorial-md hr.tutorial-hr { border-top-color: #334155; }
+    </style>
+
+    <details class="group mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-700 transition select-none hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/[0.05]">
+        <span class="inline-flex items-center gap-2">
+          <i class="fa-solid fa-book-open text-brand-500" aria-hidden="true"></i>
+          Tutorial: cara menambahkan database baru
+          <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition group-open:rotate-180" aria-hidden="true"></i>
+        </span>
+        <span class="text-xs font-normal text-gray-400 dark:text-gray-500">docs/TUTORIAL-TAMBAH-DATABASE.md</span>
+      </summary>
+      <article class="tutorial-md border-t border-gray-100 px-5 py-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-300">
+        <?= $tutorial ?>
+      </article>
+    </details>
+  <?php endif; ?>
+
   <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <form method="post" action="<?= esc($formAction) ?>" class="p-5 md:p-6">
       <?= csrf_field() ?>
@@ -71,8 +117,10 @@ $value = static function (string $field, string $default = '') use ($source, $ol
         <div>
           <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Aktif</span>
           <label for="is_active" class="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
-            <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/20" />
+            <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="peer sr-only" />
+            <span class="toggle-track" aria-hidden="true"></span>
             Ikut check berikutnya
+            <span class="toggle-state" data-on="Aktif" data-off="Nonaktif" aria-hidden="true"></span>
           </label>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Nonaktifkan untuk mengecualikan database; riwayat tetap tersimpan.</p>
         </div>

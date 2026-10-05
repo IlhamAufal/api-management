@@ -47,6 +47,16 @@ final class WatchedTableFormTest extends CIUnitTestCase
         $this->assertBodySee('fx_orders', $result);
     }
 
+    public function testActiveFieldRendersExplicitToggleControl()
+    {
+        $result = $this->withSession($this->authSession())->get('watched-tables/new');
+
+        $result->assertOK();
+        $this->assertBodySee('class="toggle-track"', $result);
+        $this->assertBodySee('class="toggle-state" data-on="Aktif" data-off="Nonaktif"', $result);
+        $this->assertBodySee('peer sr-only', $result);
+    }
+
     public function testUnauthenticatedUserIsRedirectedToLogin()
     {
         $result = $this->get('watched-tables');
