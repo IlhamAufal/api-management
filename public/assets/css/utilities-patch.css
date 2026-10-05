@@ -259,3 +259,275 @@
   color: #7592ff;
   color: var(--color-brand-400, #7592ff);
 }
+
+/* ===========================================================================
+ * Batch 5 — Sub-tab navigation (Data Freshness Monitor & Alur Workflow)
+ * ---------------------------------------------------------------------------
+ * Tab bar sebelumnya memakai underline (border-b-2) bawaan. Kini berbentuk
+ * tombol, mengikuti tombol "Check All" di navbar:
+ *   - aktif    : background solid brand-500 + teks putih + shadow biru
+ *   - non-aktif: background putih + teks biru (brand-500)
+ *
+ * Utility `pb-2`, `gap-1.5`, `hover:bg-brand-600`, `shadow-lg` tidak ikut
+ * ter-compile di style.css (build Tailwind v4 bersifat artefak statis),
+ * jadi komponen ini didefinisikan eksplisit di sini.
+ *
+ * Markup:
+ *   <nav class="seg-tabs" aria-label="Pilih source">
+ *     <a class="seg-tabs__item" href="...">Label <code class="seg-tabs__code">code</code></a>
+ *     <a class="seg-tabs__item is-active" href="..." aria-current="page">...</a>
+ *   </nav>
+ * ========================================================================= */
+
+.seg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-gray-200, #e4e7ec);
+}
+
+.seg-tabs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding-inline: 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--color-brand-500, #465fff);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-decoration: none;
+  transition: background-color 0.18s ease, color 0.18s ease,
+    border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.seg-tabs__item:hover {
+  background-color: var(--color-brand-50, #ecf3ff);
+  border-color: var(--color-brand-100, #dde9ff);
+  color: var(--color-brand-600, #3641f5);
+}
+
+.seg-tabs__item.is-active,
+.seg-tabs__item.is-active:hover {
+  background-color: var(--color-brand-500, #465fff);
+  border-color: var(--color-brand-500, #465fff);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.06),
+    0 6px 14px -6px rgb(70 95 255 / 0.7);
+}
+
+.seg-tabs__item:focus-visible {
+  outline: 2px solid var(--color-brand-500, #465fff);
+  outline-offset: 2px;
+}
+
+/* Kode source kecil di dalam tab (halaman Alur Workflow) — tetap kontras
+ * di atas background putih maupun brand. */
+.seg-tabs__code {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+/* --- Dark mode ----------------------------------------------------------- */
+.dark .seg-tabs {
+  border-bottom-color: var(--color-gray-800, #1d2939);
+}
+
+.dark .seg-tabs__item {
+  background-color: rgb(255 255 255 / 0.06);
+  color: var(--color-brand-400, #7592ff);
+}
+
+.dark .seg-tabs__item:hover {
+  background-color: rgb(255 255 255 / 0.1);
+  border-color: rgb(117 146 255 / 0.35);
+  color: #a3b3ff;
+}
+
+.dark .seg-tabs__item.is-active,
+.dark .seg-tabs__item.is-active:hover {
+  background-color: var(--color-brand-500, #465fff);
+  border-color: var(--color-brand-500, #465fff);
+  color: #ffffff;
+}
+
+/* --- Custom Select Component ------------------------------------------- */
+.custom-select-native {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* ===========================================================================
+ * Batch 6 — Modal tutorial & tombol trigger (halaman databases/new)
+ * ---------------------------------------------------------------------------
+ * Markup:
+ *
+ *   <button type="button" class="tutorial-trigger" @click="showTutorial = true">
+ *     <i class="fa-solid fa-circle-question"></i> cara tambah database
+ *   </button>
+ *
+ *   <div class="app-modal" x-show="showTutorial" ...>
+ *     <div class="app-modal__backdrop" @click="showTutorial = false"></div>
+ *     <div class="app-modal__panel"> head / body </div>
+ *   </div>
+ *
+ * Utility `z-[100000]` & `bg-gray-900/60` tidak ikut ter-compile di
+ * style.css — dipakai juga oleh modal logout di navbar, jadi didefinisikan
+ * sekalian di sini (backdrop modal logout sebelumnya tampil tanpa gelap).
+ * ========================================================================= */
+
+.z-\[100000\] {
+  z-index: 100000;
+}
+
+.bg-gray-900\/60 {
+  background-color: color-mix(in oklab, var(--color-gray-900, #101828) 60%, transparent);
+}
+
+/* Warna teks dark yang dipakai luas di view tapi tidak ikut ter-compile. */
+.dark .dark\:text-white\/90 {
+  color: color-mix(in oklab, var(--color-white, #ffffff) 90%, transparent);
+}
+
+.dark .dark\:text-gray-300 {
+  color: var(--color-gray-300, #d0d5dd);
+}
+
+/* --- Tombol kecil "cara tambah database" --------------------------------- */
+.tutorial-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding-inline: 14px;
+  border: 1px solid var(--color-brand-100, #dde9ff);
+  border-radius: 8px;
+  background-color: var(--color-brand-50, #ecf3ff);
+  color: var(--color-brand-600, #3641f5);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+    color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.tutorial-trigger:hover {
+  background-color: var(--color-brand-100, #dde9ff);
+  box-shadow: 0 4px 14px -8px rgb(70 95 255 / 0.75);
+}
+
+.tutorial-trigger:focus-visible {
+  outline: 2px solid var(--color-brand-500, #465fff);
+  outline-offset: 2px;
+}
+
+.dark .tutorial-trigger {
+  background-color: rgb(255 255 255 / 0.06);
+  border-color: rgb(117 146 255 / 0.3);
+  color: var(--color-brand-400, #7592ff);
+}
+
+.dark .tutorial-trigger:hover {
+  background-color: rgb(117 146 255 / 0.14);
+}
+
+/* --- Modal (shell) ------------------------------------------------------- */
+.app-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.app-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklab, var(--color-gray-900, #101828) 60%, transparent);
+}
+
+.app-modal__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 54rem;
+  max-height: calc(100vh - 3rem);
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 24px 60px -24px rgb(16 24 40 / 0.4);
+  overflow: hidden;
+}
+
+.dark .app-modal__panel {
+  border-color: var(--color-gray-800, #1d2939);
+  background-color: var(--color-gray-900, #101828);
+}
+
+.app-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-gray-200, #e4e7ec);
+}
+
+.dark .app-modal__head {
+  border-bottom-color: var(--color-gray-800, #1d2939);
+}
+
+.app-modal__body {
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+}
+
+.app-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--color-gray-500, #667085);
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.app-modal__close:hover {
+  background-color: var(--color-gray-50, #f9fafb);
+  color: var(--color-gray-800, #1d2939);
+}
+
+.dark .app-modal__close {
+  background-color: rgb(255 255 255 / 0.06);
+  border-color: var(--color-gray-700, #344054);
+  color: var(--color-gray-400, #98a2b3);
+}
+
+.dark .app-modal__close:hover {
+  background-color: rgb(255 255 255 / 0.12);
+  color: #f1f5f9;
+}
+

@@ -8,7 +8,10 @@
         <img class="dark:hidden" src="<?= base_url('assets/images/logo/logo.svg') ?>" alt="MD-Bridge" />
         <img class="hidden dark:block" src="<?= base_url('assets/images/logo/logo-dark.svg') ?>" alt="MD-Bridge" />
       </span>
-      <img class="logo-icon" :class="sidebarToggle ? 'lg:block' : 'hidden'" src="<?= base_url('assets/images/logo/logo-icon.svg') ?>" alt="MD-Bridge" />
+      <span class="logo-icon items-center justify-center" :class="sidebarToggle ? 'lg:inline-flex' : 'hidden'">
+        <img class="dark:hidden h-8 w-auto" src="<?= base_url('assets/images/logo/logo-icon.svg') ?>" alt="MD-Bridge" />
+        <img class="hidden dark:block h-8 w-auto" src="<?= base_url('assets/images/logo/logo-icon-dark.svg') ?>" alt="MD-Bridge" />
+      </span>
     </a>
   </div>
 

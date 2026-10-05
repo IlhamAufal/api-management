@@ -35,18 +35,16 @@
     </section>
   <?php else: ?>
     <!-- Tab bar: satu tab per source aktif; tiap tab adalah URL nyata. -->
-    <nav class="flex flex-wrap gap-1 border-b border-gray-200 dark:border-gray-800" aria-label="Pilih source">
+    <nav class="seg-tabs" aria-label="Pilih source">
       <?php foreach ($sources as $tab): ?>
         <?php $isActive = $activeSource !== null && (int) $tab['id'] === (int) $activeSource['id']; ?>
         <a
           href="<?= base_url('monitoring/workflow/source/' . $tab['code']) ?>"
-          class="-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition <?= $isActive
-            ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200' ?>"
+          class="seg-tabs__item<?= $isActive ? ' is-active' : '' ?>"
           <?= $isActive ? 'aria-current="page"' : '' ?>
         >
           <?= esc($tab['label']) ?>
-          <code class="text-[10px] font-normal opacity-70"><?= esc($tab['code']) ?></code>
+          <!-- <code class="seg-tabs__code"><?= esc($tab['code']) ?></code> -->
         </a>
       <?php endforeach; ?>
     </nav>

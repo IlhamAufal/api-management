@@ -10,7 +10,7 @@ $value = static function (string $field, string $default = '') use ($source, $ol
     return (string) ($source[$field] ?? $default);
 };
 ?>
-<div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+<div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6" x-data="{ showTutorial: false }">
   <?= view('components/breadcrumb', ['items' => [
       ['label' => 'Home', 'href' => base_url('/')],
       ['label' => 'Databases', 'href' => base_url('databases')],
@@ -23,10 +23,25 @@ $value = static function (string $field, string $default = '') use ($source, $ol
       <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= $isEdit ? 'Edit Database' : 'Tambah Database' ?></h1>
       <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">Isi kode database (source) dan labelnya. Kredensial koneksi tidak diisi di form ini.</p>
     </div>
-    <a href="<?= $cancelUrl ?>" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
-      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-      Kembali
-    </a>
+    <div class="flex shrink-0 flex-wrap items-center gap-3">
+      <?php if (! empty($tutorial)): ?>
+        <button
+          type="button"
+          class="tutorial-trigger"
+          @click="showTutorial = true"
+          aria-haspopup="dialog"
+          title="Buka tutorial penambahan database"
+        >
+          <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+          cara tambah database
+        </button>
+      <?php endif; ?>
+
+      <a href="<?= $cancelUrl ?>" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        Kembali
+      </a>
+    </div>
   </div>
 
   <?php if (! empty($tutorial)): ?>
@@ -59,20 +74,6 @@ $value = static function (string $field, string $default = '') use ($source, $ol
       .dark .tutorial-md strong { color: #f8fafc; }
       .dark .tutorial-md hr.tutorial-hr { border-top-color: #334155; }
     </style>
-
-    <details class="group mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-      <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-700 transition select-none hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/[0.05]">
-        <span class="inline-flex items-center gap-2">
-          <i class="fa-solid fa-book-open text-brand-500" aria-hidden="true"></i>
-          Tutorial: cara menambahkan database baru
-          <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition group-open:rotate-180" aria-hidden="true"></i>
-        </span>
-        <span class="text-xs font-normal text-gray-400 dark:text-gray-500">docs/TUTORIAL-TAMBAH-DATABASE.md</span>
-      </summary>
-      <article class="tutorial-md border-t border-gray-100 px-5 py-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-300">
-        <?= $tutorial ?>
-      </article>
-    </details>
   <?php endif; ?>
 
   <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -139,5 +140,43 @@ $value = static function (string $field, string $default = '') use ($source, $ol
       </div>
     </form>
   </section>
+
+  <?php if (! empty($tutorial)): ?>
+    <!-- Modal tutorial — konten di-parse dari docs/TUTORIAL-TAMBAH-DATABASE.md -->
+    <div
+      class="app-modal"
+      x-show="showTutorial"
+      x-transition.opacity.duration.150ms
+      @keydown.escape.window="showTutorial = false"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tutorial-modal-title"
+      style="display: none;"
+    >
+      <div class="app-modal__backdrop" @click="showTutorial = false"></div>
+
+      <div class="app-modal__panel">
+        <div class="app-modal__head">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold tracking-wide text-brand-500">MD-Bridge</p>
+            <h2 id="tutorial-modal-title" class="mt-1 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-white/90">
+              <i class="fa-solid fa-circle-question text-brand-500" aria-hidden="true"></i>
+              Tutorial: cara menambahkan database baru
+            </h2>
+            <p class="mt-1 text-xs font-normal text-gray-400 dark:text-gray-500">docs/TUTORIAL-TAMBAH-DATABASE.md</p>
+          </div>
+          <button type="button" class="app-modal__close" @click="showTutorial = false" aria-label="Tutup tutorial">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="app-modal__body">
+          <article class="tutorial-md text-sm text-gray-600 dark:text-gray-300">
+            <?= $tutorial ?>
+          </article>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
 </div>
 <?= $this->endSection() ?>

@@ -18,8 +18,9 @@
     </a>
   </div>
 
-  <section class="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-    <div class="flex flex-col gap-3 border-b border-gray-100 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
+  <!-- Section 1 — Filter & ringkasan (kartu terpisah dari tabel). -->
+  <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <!-- Filter: status + source + trigger (GET; filter tidak valid diabaikan backend). -->
       <form method="get" class="flex flex-wrap items-center gap-3">
         <label for="status" class="text-sm font-medium text-gray-600 dark:text-gray-300">Filter</label>
@@ -92,7 +93,10 @@
         <?php endif; ?>
       </p>
     </div>
+  </section>
 
+  <!-- Section 2 — Tabel + navigasi halaman. -->
+  <section class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <div class="overflow-x-auto">
       <table class="w-full min-w-[980px] text-left">
         <thead class="bg-brand-500 text-white">

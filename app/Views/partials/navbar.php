@@ -31,11 +31,6 @@
 
     <!-- Right: Minimalist Controls -->
     <div class="flex items-center gap-2 sm:gap-3">
-      <!-- Status Indicator -->
-      <div class="hidden md:inline-flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-gray-50/80 px-2.5 py-1 text-[11px] font-medium text-gray-600 dark:border-gray-800 dark:bg-gray-800/40 dark:text-gray-400">
-        <span class="h-1.5 w-1.5 rounded-full bg-success-500"></span>
-        <span>Connected</span>
-      </div>
 
       <div class="hidden md:block h-4 w-px bg-gray-200 dark:bg-gray-800"></div>
 
@@ -47,7 +42,6 @@
         data-running-text="Checking…"
         title="Check semua sel (tabel × source)"
       >
-        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 13a8 8 0 0 0 14.9 4M5 3v4h4M19 21v-4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="sync-all-label">Check All</span>
       </button>
 
