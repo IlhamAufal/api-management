@@ -29,7 +29,7 @@ $toastType = ($flashError !== null
 >
   <div
     :class="type === 'error' ? 'border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300' : 'border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300'"
-    class="flex items-start gap-3 rounded-xl border p-4 shadow-theme-lg"
+    class="flex items-start gap-3 rounded-xl border p-4"
     role="status"
     aria-live="polite"
   >

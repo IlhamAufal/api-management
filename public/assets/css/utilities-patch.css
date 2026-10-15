@@ -38,7 +38,21 @@
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Effects (shadow & focus ring) --------------------------------------- */
-.shadow-xs { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.shadow-xs,
+.shadow-2xs,
+.shadow-sm,
+.shadow,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl,
+.shadow-theme-xs,
+.shadow-theme-sm,
+.shadow-theme-md,
+.shadow-theme-lg,
+.shadow-theme-xl {
+  box-shadow: none !important;
+}
 .backdrop-blur-sm { backdrop-filter: blur(8px); }
 .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
 .focus\:ring-2:focus { box-shadow: 0 0 0 2px var(--tw-ring-color, rgb(59 130 246 / 0.5)); }
@@ -208,7 +222,8 @@
   height: 20px;
   border-radius: 9999px;
   background-color: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  border: 1px solid #d0d5dd;
+  box-shadow: none;
   transition: transform 0.2s ease;
 }
 .peer:checked ~ .toggle-track {
@@ -324,8 +339,7 @@
   background-color: var(--color-brand-500, #465fff);
   border-color: var(--color-brand-500, #465fff);
   color: #ffffff;
-  box-shadow: 0 1px 2px rgb(16 24 40 / 0.06),
-    0 6px 14px -6px rgb(70 95 255 / 0.7);
+  box-shadow: none;
 }
 
 .seg-tabs__item:focus-visible {
@@ -434,7 +448,7 @@
 
 .tutorial-trigger:hover {
   background-color: var(--color-brand-100, #dde9ff);
-  box-shadow: 0 4px 14px -8px rgb(70 95 255 / 0.75);
+  box-shadow: none;
 }
 
 .tutorial-trigger:focus-visible {
@@ -479,7 +493,7 @@
   border: 1px solid var(--color-gray-200, #e4e7ec);
   border-radius: 1rem;
   background-color: #ffffff;
-  box-shadow: 0 24px 60px -24px rgb(16 24 40 / 0.4);
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -654,7 +668,7 @@
   background-color: #ffffff;
   border: 1px solid var(--color-gray-200, #e4e7ec);
   border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  box-shadow: none;
 }
 
 /* Transisi Alpine (x-transition) — kelas Tailwind scale-98/translate tidak
@@ -775,7 +789,7 @@
 .dark .cs-select__menu {
   background-color: var(--color-gray-800, #1d2939);
   border-color: var(--color-gray-700, #344054);
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  box-shadow: none;
 }
 
 .dark .cs-select__search { border-bottom-color: rgb(52 64 84 / 0.6); }
@@ -805,4 +819,391 @@
 .dark .cs-select__opt.is-selected:hover { background-color: rgb(70 95 255 / 0.25); }
 
 .dark .cs-select__empty { color: var(--color-gray-500, #667085); }
+
+/* =========================================================================
+ * cs-field — text input yang dibuat visually konsisten dengan .cs-select
+ * (ukuran small). Dipakai untuk field pencarian di samping custom_select
+ * agar sepasang kontrol terlihat seragam. Hanya styling; tidak ada JS.
+ * ======================================================================= */
+.cs-field { position: relative; }
+
+.cs-field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--color-gray-700, #344054);
+}
+
+.dark .cs-field__label { color: var(--color-gray-300, #d0d5dd); }
+
+.cs-field__control { position: relative; }
+
+.cs-field__icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-gray-400, #98a2b3);
+  pointer-events: none;
+}
+
+.cs-field__input {
+  display: block;
+  width: 100%;
+  /* padding mengikuti .cs-select--sm .cs-select__btn (8px 12px),
+     dengan ruang ekstra kiri untuk ikon & kanan untuk tombol clear. */
+  padding: 8px 34px 8px 32px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-gray-800, #1d2939);
+  background-color: #ffffff;
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.cs-field__input::placeholder { color: var(--color-gray-400, #98a2b3); }
+
+.cs-field__input:hover { border-color: var(--color-gray-300, #d0d5dd); }
+
+.cs-field__input:focus {
+  border-color: var(--color-brand-500, #465fff);
+  box-shadow: 0 0 0 4px rgb(70 95 255 / 0.1);
+  outline: none;
+}
+
+.cs-field__clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  color: var(--color-gray-400, #98a2b3);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.cs-field__clear:hover {
+  color: var(--color-gray-600, #475467);
+  background-color: var(--color-gray-100, #f2f4f7);
+}
+
+.cs-field__clear[hidden] { display: none; }
+
+/* --- Dark mode ----------------------------------------------------------- */
+.dark .cs-field__input {
+  background-color: rgb(16 24 40 / 0.6);
+  border-color: var(--color-gray-700, #344054);
+  color: var(--color-gray-200, #e4e7ec);
+}
+
+.dark .cs-field__input:hover { border-color: var(--color-gray-600, #475467); }
+.dark .cs-field__input::placeholder { color: var(--color-gray-500, #667085); }
+.dark .cs-field__icon { color: var(--color-gray-500, #667085); }
+
+.dark .cs-field__clear { color: var(--color-gray-500, #667085); }
+.dark .cs-field__clear:hover {
+  color: var(--color-gray-300, #d0d5dd);
+  background-color: rgb(255 255 255 / 0.06);
+}
+
+/* =========================================================================
+ * User Select Utilities (select-text, select-all, select-none)
+ * Memastikan kontrol seleksi teks browser bekerja secara native dan presisi
+ * tanpa meluber ke parent/container saat di-klik atau triple-click.
+ * ======================================================================= */
+.select-text {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+.select-all {
+  -webkit-user-select: all !important;
+  -moz-user-select: all !important;
+  -ms-user-select: all !important;
+  user-select: all !important;
+}
+
+.select-none {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Layout Selection Boundaries: hindari header, breadcrumb, thead, dan toolbar ikut terblok */
+header,
+nav[aria-label="Breadcrumb"],
+table thead {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* ===========================================================================
+ * Batch 8 — Redesign dashboard (app/Views/dashboard/index.php)
+ * ---------------------------------------------------------------------------
+ * style.css (build Tailwind v4) tidak memuat sejumlah utility baru yang
+ * dipakai view dashboard (h-48, max-w-[40px], gap-x-4, hover:underline, dst.)
+ * sehingga chart tren & legend-nya selama ini tampil tanpa tinggi/rapat.
+ * Selain itu dashboard memakai komponen kustom: kartu statistik beraksen
+ * warna, ikon judul section, chip status solid (teks putih, tanpa dot,
+ * font Poppins), dan baris keterangan status. Semuanya didefinisikan di sini
+ * beserta varian dark mode-nya — tidak bergantung pada utility yang belum
+ * ter-compile.
+ * ========================================================================= */
+
+/* --- Utility yang tidak ikut ter-compile --------------------------------- */
+.h-48 { height: calc(var(--spacing) * 48); }
+.max-w-\[40px\] { max-width: 40px; }
+.text-\[11px\] { font-size: 11px; }
+.gap-x-4 { column-gap: calc(var(--spacing) * 4); }
+.gap-y-2 { row-gap: calc(var(--spacing) * 2); }
+.hover\:underline:hover { text-decoration: underline; }
+.whitespace-nowrap { white-space: nowrap; }
+
+/* --- Font Poppins -------------------------------------------------------- */
+.font-poppins {
+  font-family: 'Poppins', 'Outfit', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* --- Ikon judul section -------------------------------------------------- */
+.dash-hicon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  color: #fff;
+}
+.dash-hicon--brand  { background-color: var(--color-brand-500, #465fff); box-shadow: none; }
+.dash-hicon--orange { background-color: var(--color-orange-500, #fb6514); box-shadow: none; }
+.dash-hicon--success { background-color: var(--color-success-500, #12b76a); box-shadow: none; }
+
+/* --- Kartu statistik (Source Aktif, Watched Tables, Sel Pemantauan) ------ */
+.dash-card {
+  --dash-accent: #465fff;
+  --dash-tint: #ecf3ff;
+  --dash-ink: #3641f5;
+  --dash-tint-dark: rgb(70 95 255 / 0.18);
+  --dash-ink-dark: #9cb9ff;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.25rem;
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 1rem;
+  background-color: #ffffff;
+}
+
+/* Wash warna / radial glow di pojok kartu dinonaktifkan. */
+.dash-card::after {
+  display: none !important;
+}
+
+.dash-card--brand  { --dash-accent: #465fff; --dash-tint: #ecf3ff; --dash-ink: #3641f5; --dash-tint-dark: rgb(70 95 255 / 0.20); --dash-ink-dark: #9cb9ff; }
+.dash-card--orange { --dash-accent: #fb6514; --dash-tint: #fff6ed; --dash-ink: #c2410c; --dash-tint-dark: rgb(251 101 20 / 0.20); --dash-ink-dark: #fdb022; }
+.dash-card--sky    { --dash-accent: #0ba5ec; --dash-tint: #f0f9ff; --dash-ink: #0369a1; --dash-tint-dark: rgb(11 165 236 / 0.20); --dash-ink-dark: #7dd3fc; }
+
+.dash-card__head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.dash-card__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.8rem;
+  background-color: var(--dash-accent);
+  color: #fff;
+  font-size: 1rem;
+  box-shadow: none;
+}
+
+.dash-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  background-color: var(--dash-tint);
+  color: var(--dash-ink);
+  font-family: 'Poppins', 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.dash-card__value {
+  position: relative;
+  z-index: 1;
+  margin-top: 1rem;
+  font-family: 'Poppins', 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--dash-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-card__meta {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-400, #98a2b3);
+}
+
+.dark .dash-card {
+  background-color: rgb(255 255 255 / 0.03);
+  border-color: var(--color-gray-800, #1d2939);
+}
+.dark .dash-card::after { opacity: 0.22; }
+.dark .dash-pill { background-color: var(--dash-tint-dark); color: var(--dash-ink-dark); }
+.dark .dash-card__value { color: var(--dash-ink-dark); }
+
+/* --- Chip status: background pekat, teks putih bold, Poppins, tanpa dot --- */
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-width: 132px;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.55rem;
+  background-color: var(--dash-accent, #667085);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* --- Baris status: chip | jumlah | keterangan ---------------------------- */
+.dash-status {
+  margin-top: 1.25rem;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  border-radius: 0.9rem;
+  background-color: #ffffff;
+}
+
+.dash-status__head {
+  display: none;
+  grid-template-columns: 132px 84px 1fr;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+  background-color: var(--color-brand-500, #465fff);
+  border-bottom: 1px solid var(--color-brand-600, #3641f5);
+  font-family: 'Poppins', 'Outfit', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+.dash-status__row {
+  --dash-accent: var(--color-gray-300, #d0d5dd);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem 0.75rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--dash-accent);
+  border-bottom: 1px solid var(--color-gray-100, #f2f4f7);
+  transition: background-color 0.15s ease;
+}
+
+.dash-status__row:last-child { border-bottom: 0; }
+.dash-status__row:hover { background-color: var(--color-gray-50, #f9fafb); }
+
+/* --- Tone warna per status ------------------------------------------------
+ * Sengaja diletakkan SETELAH `.dash-status__row` (specificity sama) supaya
+ * warna tone yang menang — chip & border-left baris ikut berwarna:
+ * OK hijau, STALE kuning/amber, MISSING_TABLE & CONN_ERROR merah, dst. */
+.dash-tone-ok             { --dash-accent: #039855; }
+.dash-tone-stale          { --dash-accent: #dc6803; }
+.dash-tone-never_synced   { --dash-accent: #475467; }
+.dash-tone-missing_table  { --dash-accent: #f04438; }
+.dash-tone-pending_config { --dash-accent: #667085; }
+.dash-tone-conn_error     { --dash-accent: #b42318; }
+
+.dash-status__count {
+  justify-self: end;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: var(--color-gray-800, #1d2939);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-status__count small {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-gray-400, #98a2b3);
+}
+
+.dash-status__desc {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--color-gray-500, #667085);
+}
+
+@media (min-width: 768px) {
+  .dash-status__head { display: grid; }
+  .dash-status__row {
+    grid-template-columns: 132px 84px minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+  }
+  .dash-status__desc { grid-column: auto; }
+  .dash-status__count { justify-self: start; }
+}
+
+.dark .dash-status {
+  background-color: rgb(255 255 255 / 0.02);
+  border-color: var(--color-gray-800, #1d2939);
+}
+.dark .dash-status__head {
+  background-color: var(--color-brand-500, #465fff);
+  border-bottom-color: var(--color-brand-600, #3641f5);
+  color: #ffffff;
+}
+.dark .dash-status__row {
+  border-bottom-color: var(--color-gray-800, #1d2939);
+}
+.dark .dash-status__row:hover { background-color: rgb(255 255 255 / 0.04); }
+.dark .dash-status__count { color: var(--color-gray-100, #f2f4f7); }
+.dark .dash-status__desc { color: var(--color-gray-400, #98a2b3); }
+
 

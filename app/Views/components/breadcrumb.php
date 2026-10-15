@@ -9,7 +9,7 @@
 $breadcrumbItems = $items ?? [];
 $breadcrumbLast = count($breadcrumbItems) - 1;
 ?>
-<nav aria-label="Breadcrumb" class="mb-4">
+<nav aria-label="Breadcrumb" class="mb-4 select-none">
   <ol class="flex flex-wrap items-center gap-1.5 text-sm">
     <?php foreach ($breadcrumbItems as $index => $item): ?>
       <?php if ($index < $breadcrumbLast): ?>

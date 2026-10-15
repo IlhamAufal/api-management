@@ -104,16 +104,16 @@
   <section class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <div class="overflow-x-auto">
       <table class="w-full min-w-[980px] text-left">
-        <thead class="bg-brand-500 text-white">
+        <thead class="select-none bg-brand-500 text-white font-poppins">
           <tr>
-            <th class="px-5 py-3 text-sm font-semibold">Dijalankan</th>
-            <th class="px-5 py-3 text-sm font-semibold">Tabel</th>
-            <th class="px-5 py-3 text-sm font-semibold">Source</th>
-            <th class="px-5 py-3 text-sm font-semibold">Trigger</th>
-            <th class="px-5 py-3 text-sm font-semibold">Status</th>
-            <th class="px-5 py-3 text-right text-sm font-semibold">Baris</th>
-            <th class="px-5 py-3 text-sm font-semibold">Sync Terakhir</th>
-            <th class="px-5 py-3 text-sm font-semibold">Pesan Error</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Dijalankan</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Tabel</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Source</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Trigger</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Status</th>
+            <th class="px-5 py-3.5 text-right text-sm font-semibold">Baris</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Sync Terakhir</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Pesan Error</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">

@@ -1,67 +1,108 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
+<?php
+  // Kartu statistik atas — tiap kartu punya warna aksen sendiri (lihat
+  // `.dash-card--*` di assets/css/utilities-patch.css).
+  $statCards = [
+    [
+      'tone'  => 'brand',
+      'icon'  => 'fa-solid fa-plug',
+      'label' => 'Source Aktif',
+      'value' => count($sources),
+      'meta'  => implode(' · ', array_column($sources, 'code')) ?: '—',
+    ],
+    [
+      'tone'  => 'orange',
+      'icon'  => 'fa-solid fa-table',
+      'label' => 'Watched Tables',
+      'value' => count($tables),
+      'meta'  => 'tabel dipantau',
+    ],
+    [
+      'tone'  => 'sky',
+      'icon'  => 'fa-solid fa-table-cells-large',
+      'label' => 'Sel Pemantauan',
+      'value' => count($tables) * count($sources),
+      'meta'  => 'tabel × source',
+    ],
+  ];
+
+  // Keterangan tiap status sel — dipakai di kolom kanan baris "Status Sel Terkini".
+  $statusMeta = [
+    'OK'             => ['tone' => 'ok', 'desc' => 'Sel sehat: tabel ditemukan dan umur data terbaru masih di bawah batas segar (stale_after_minutes).'],
+    'STALE'          => ['tone' => 'stale', 'desc' => 'Data basi: sync terakhir sudah melewati batas segar, perlu di-refresh.'],
+    'NEVER_SYNCED'   => ['tone' => 'never_synced', 'desc' => 'Belum pernah berhasil sync sejak sel ini didaftarkan.'],
+    'MISSING_TABLE'  => ['tone' => 'missing_table', 'desc' => 'Tabel tidak ditemukan di source terkait (nama salah atau belum dibuat).'],
+    'PENDING_CONFIG' => ['tone' => 'pending_config', 'desc' => 'Connection group source belum terdaftar di Config/Database.php — credential perlu diisi.'],
+    'CONN_ERROR'     => ['tone' => 'conn_error', 'desc' => 'Koneksi atau query ke source gagal saat pengecekan terakhir.'],
+  ];
+
+  // Warna segmen tren — konsisten dengan badge_status.php.
+  $trendColors = [
+    'OK'            => 'bg-success-500',
+    'STALE'         => 'bg-warning-500',
+    'NEVER_SYNCED'  => 'bg-gray-400',
+    'MISSING_TABLE' => 'bg-error-400',
+    'CONN_ERROR'    => 'bg-error-500',
+  ];
+  $maxTrend      = 0;
+  $trendHasData  = false;
+  foreach ($trend as $day) {
+    $maxTrend     = max($maxTrend, (int) $day['total']);
+    $trendHasData = $trendHasData || (int) $day['total'] > 0;
+  }
+  $snapshotTotal = array_sum($statusBreakdown);
+?>
 <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
   <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p class="text-sm font-semibold tracking-wide text-brand-500">MD-Bridge Analytics</p>
-      <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Dashboard</h1>
+      <h1 class="font-poppins mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">Dashboard</h1>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ringkasan performa integrasi.</p>
     </div>
     <a href="<?= base_url('monitoring') ?>" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">Buka Monitoring</a>
   </div>
 
   <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Source Aktif</p>
-      <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= count($sources) ?></p>
-      <p class="mt-1 text-xs text-gray-400"><?= esc(implode(', ', array_column($sources, 'code')) ?: '—') ?></p>
-    </div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Watched Tables</p>
-      <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= count($tables) ?></p>
-      <p class="mt-1 text-xs text-gray-400">tabel dipantau</p>
-    </div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Sel Pemantauan</p>
-      <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= count($tables) * count($sources) ?></p>
-      <p class="mt-1 text-xs text-gray-400">tabel × source</p>
-    </div>
+    <?php foreach ($statCards as $card): ?>
+      <div class="dash-card dash-card--<?= $card['tone'] ?>">
+        <div class="dash-card__head">
+          <span class="dash-card__icon"><i class="<?= $card['icon'] ?>" aria-hidden="true"></i></span>
+          <span class="dash-pill"><?= esc($card['label']) ?></span>
+        </div>
+        <p class="dash-card__value"><?= (int) $card['value'] ?></p>
+        <p class="dash-card__meta"><?= esc($card['meta']) ?></p>
+      </div>
+    <?php endforeach; ?>
   </section>
-
-  <?php
-    // Warna segmen tren — konsisten dengan badge_status.php.
-    $trendColors = [
-      'OK'            => 'bg-success-500',
-      'STALE'         => 'bg-warning-500',
-      'NEVER_SYNCED'  => 'bg-gray-400',
-      'MISSING_TABLE' => 'bg-error-400',
-      'CONN_ERROR'    => 'bg-error-500',
-    ];
-    $maxTrend      = 0;
-    $trendHasData  = false;
-    foreach ($trend as $day) {
-      $maxTrend     = max($maxTrend, (int) $day['total']);
-      $trendHasData = $trendHasData || (int) $day['total'] > 0;
-    }
-    $snapshotTotal = array_sum($statusBreakdown);
-  ?>
 
   <!-- Status sel terkini (table_snapshots) -->
   <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-    <div class="flex items-baseline justify-between gap-4">
-      <div>
-        <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Status Sel Terkini</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Distribusi status dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800">table_snapshots</code> (seluruh pasangan tabel &times; source).</p>
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-start gap-3">
+        <span class="dash-hicon dash-hicon--brand"><i class="fa-solid fa-signal" aria-hidden="true"></i></span>
+        <div>
+          <h2 class="font-poppins text-base font-semibold text-gray-800 dark:text-white/90">Status Sel Terkini</h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Distribusi status dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800">table_snapshots</code> (seluruh pasangan tabel &times; source).</p>
+        </div>
       </div>
       <a href="<?= base_url('monitoring') ?>" class="shrink-0 text-sm font-semibold text-brand-500 hover:underline">Buka Monitoring</a>
     </div>
 
-    <div class="mt-4 flex flex-wrap gap-3">
+    <div class="dash-status">
+      <div class="dash-status__head">
+        <span>Status</span>
+        <span>Sel</span>
+        <span>Keterangan</span>
+      </div>
       <?php foreach ($statusBreakdown as $status => $count): ?>
-        <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-white/[0.02]" data-status="<?= esc($status) ?>" data-count="<?= (int) $count ?>">
-          <?= view('components/badge_status', ['status' => $status]) ?>
-          <span class="text-xl font-bold text-gray-800 dark:text-white/90"><?= (int) $count ?></span>
+        <?php
+          $meta = $statusMeta[$status] ?? ['tone' => 'pending_config', 'desc' => 'Status belum terdefinisi.'];
+        ?>
+        <div class="dash-status__row dash-tone-<?= $meta['tone'] ?>" data-status="<?= esc($status) ?>" data-count="<?= (int) $count ?>">
+          <span class="dash-chip font-poppins"><?= esc($status) ?></span>
+          <span class="dash-status__count font-poppins"><?= (int) $count ?> <small>sel</small></span>
+          <span class="dash-status__desc"><?= esc($meta['desc']) ?></span>
         </div>
       <?php endforeach; ?>
     </div>
@@ -76,8 +117,13 @@
   <!-- Tren 7 hari + Health per source -->
   <section class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-      <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Tren Check (7 Hari)</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Jumlah eksekusi check per hari dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800">check_history</code>, ditumpuk per status.</p>
+      <div class="flex items-start gap-3">
+        <span class="dash-hicon dash-hicon--orange"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span>
+        <div>
+          <h2 class="font-poppins text-base font-semibold text-gray-800 dark:text-white/90">Tren Check (7 Hari)</h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Jumlah eksekusi check per hari dari <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-800">check_history</code>, ditumpuk per status.</p>
+        </div>
+      </div>
 
       <?php if (! $trendHasData): ?>
         <div class="mt-6 rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700">
@@ -111,7 +157,7 @@
                   <div class="h-1 w-full max-w-[40px] rounded-sm bg-gray-200 dark:bg-gray-700"></div>
                 <?php endif; ?>
               </div>
-              <span class="truncate text-[10px] text-gray-400"><?= esc($day['label']) ?></span>
+              <span class="truncate font-poppins text-[10px] text-gray-400"><?= esc($day['label']) ?></span>
             </div>
           <?php endforeach; ?>
         </div>
@@ -128,8 +174,13 @@
     </div>
 
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-      <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Health per Source</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sel OK dibanding total sel dari snapshot terkini, per source aktif.</p>
+      <div class="flex items-start gap-3">
+        <span class="dash-hicon dash-hicon--success"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
+        <div>
+          <h2 class="font-poppins text-base font-semibold text-gray-800 dark:text-white/90">Health per Source</h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sel OK dibanding total sel dari snapshot terkini, per source aktif.</p>
+        </div>
+      </div>
 
       <?php if (empty($sourceHealth)): ?>
         <div class="mt-6 rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700">
@@ -145,7 +196,7 @@
                   <?= esc($source['label']) ?>
                   <code class="ml-1.5 text-[10px] font-normal text-gray-400"><?= esc($source['code']) ?></code>
                 </span>
-                <span class="text-sm font-bold text-gray-700 dark:text-gray-200">
+                <span class="font-poppins text-sm font-bold text-gray-700 dark:text-gray-200">
                   <?= (int) $source['ok'] ?>/<?= (int) $source['total'] ?> sel OK
                   <span class="ml-1 text-xs font-medium text-gray-400">(<?= (int) $source['percent'] ?>%)</span>
                 </span>

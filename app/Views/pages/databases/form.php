@@ -76,13 +76,13 @@ $value = static function (string $field, string $default = '') use ($source, $ol
     </style>
   <?php endif; ?>
 
-  <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+  <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white dark:border-gray-800 dark:bg-gray-900/40">
     <form method="post" action="<?= esc($formAction) ?>" class="p-5 md:p-6">
       <?= csrf_field() ?>
       <input type="hidden" name="return_to" value="<?= $isEdit ? 'edit/' . (int) $source['id'] : 'new' ?>" />
 
       <?php if (! empty($errors)): ?>
-        <div class="mb-5 flex items-start gap-2 rounded-xl border border-error-200 bg-error-50 p-4 text-sm font-medium text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300">
+        <div class="mb-5 flex items-start gap-2.5 rounded-xl border border-error-200 bg-error-50 p-4 text-sm font-medium text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300">
           <i class="fa-solid fa-triangle-exclamation mt-0.5" aria-hidden="true"></i>
           <div>
             <p class="font-semibold">Periksa kembali input Anda:</p>
@@ -95,11 +95,11 @@ $value = static function (string $field, string $default = '') use ($source, $ol
         </div>
       <?php endif; ?>
 
-      <div class="mb-5 flex items-start gap-2 rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-400">
+      <div class="mb-5 flex items-start gap-2.5 rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-400">
         <i class="fa-solid fa-key mt-0.5" aria-hidden="true"></i>
         <div>
           <p class="font-semibold">Credential diisi manual oleh developer</p>
-          <p class="mt-1">Kode database harus sama dengan nama connection group di <code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">app/Config/Database.php</code> dan nilai credential di <code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">.env</code> (<code class="rounded bg-warning-100 px-1.5 py-0.5 text-xs dark:bg-warning-500/20">database.<?= esc($value('code', '<kode>')) ?>.*</code>). Selama group belum ada, database tampil <strong>PENDING_CONFIG</strong> — bukan error. Pakai tombol <strong>Uji Koneksi</strong> untuk memverifikasi sebelum menyimpan.</p>
+          <p class="mt-1 leading-relaxed">Kode database harus sama dengan nama connection group di <code class="rounded bg-warning-100 px-1.5 py-0.5 font-mono text-xs text-warning-800 dark:bg-warning-500/20 dark:text-warning-300">app/Config/Database.php</code> dan nilai credential di <code class="rounded bg-warning-100 px-1.5 py-0.5 font-mono text-xs text-warning-800 dark:bg-warning-500/20 dark:text-warning-300">.env</code> (<code class="rounded bg-warning-100 px-1.5 py-0.5 font-mono text-xs text-warning-800 dark:bg-warning-500/20 dark:text-warning-300">database.<?= esc($value('code', '<kode>')) ?>.*</code>). Selama group belum ada, database tampil <strong>PENDING_CONFIG</strong> — bukan error. Pakai tombol <strong>Uji Koneksi</strong> untuk memverifikasi sebelum menyimpan.</p>
         </div>
       </div>
 
@@ -128,15 +128,15 @@ $value = static function (string $field, string $default = '') use ($source, $ol
       </div>
 
       <div class="mt-6 flex flex-wrap items-center gap-3">
-        <button type="submit" formaction="<?= base_url('databases/test') ?>" formmethod="post" title="Uji koneksi sesuai kode yang diisi — tanpa menyimpan" class="inline-flex items-center justify-center gap-2 rounded-lg border border-warning-300 bg-warning-50 px-5 py-2.5 text-sm font-semibold text-warning-700 transition hover:bg-warning-100 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-400 dark:hover:bg-warning-500/20">
-          <i class="fa-solid fa-plug" aria-hidden="true"></i>
+        <button type="submit" formaction="<?= base_url('databases/test') ?>" formmethod="post" title="Uji koneksi sesuai kode yang diisi — tanpa menyimpan" class="inline-flex items-center justify-center gap-2 rounded-lg border border-warning-300 bg-warning-50 px-5 py-2.5 text-sm font-semibold text-warning-700 transition duration-150 ease-out hover:bg-warning-100 active:scale-[0.98] dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-400 dark:hover:bg-warning-500/20">
+          <i class="fa-solid fa-plug text-xs" aria-hidden="true"></i>
           Uji Koneksi
         </button>
-        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600">
-          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition duration-150 ease-out hover:bg-brand-600 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
+          <i class="fa-solid fa-floppy-disk text-xs" aria-hidden="true"></i>
           <?= $isEdit ? 'Simpan Perubahan' : 'Daftarkan Database' ?>
         </button>
-        <a href="<?= $cancelUrl ?>" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">Batal</a>
+        <a href="<?= $cancelUrl ?>" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition duration-150 ease-out hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">Batal</a>
       </div>
     </form>
   </section>

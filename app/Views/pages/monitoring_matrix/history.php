@@ -27,20 +27,20 @@
   <?php if ($snapshot !== null): ?>
     <section class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Status Terkini</p>
+        <p class="text-xs font-semibold tracking-wide text-gray-400">Status Terkini</p>
         <div class="mt-2"><?= view('components/badge_status', ['status' => $snapshot['status']]) ?></div>
       </div>
       <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Sync Terakhir</p>
+        <p class="text-xs font-semibold tracking-wide text-gray-400">Sync Terakhir</p>
         <p class="mt-2 font-semibold text-gray-800 dark:text-white/90"><?= esc($relative($snapshot['last_synced_at'])) ?></p>
         <p class="text-xs text-gray-500 dark:text-gray-400"><?= $snapshot['last_synced_at'] !== null ? esc($snapshot['last_synced_at']) : '—' ?></p>
       </div>
       <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Jumlah Baris</p>
+        <p class="text-xs font-semibold tracking-wide text-gray-400">Jumlah Baris</p>
         <p class="mt-2 font-semibold text-gray-800 dark:text-white/90"><?= $snapshot['row_count'] !== null ? number_format((int) $snapshot['row_count']) : '—' ?></p>
       </div>
       <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Terakhir Dicek</p>
+        <p class="text-xs font-semibold tracking-wide text-gray-400">Terakhir Dicek</p>
         <p class="mt-2 font-semibold text-gray-800 dark:text-white/90"><?= esc($relative($snapshot['checked_at'])) ?></p>
         <p class="text-xs text-gray-500 dark:text-gray-400"><?= esc($snapshot['checked_at']) ?></p>
       </div>
@@ -85,14 +85,14 @@
     </div>
     <div class="overflow-x-auto">
       <table class="w-full min-w-[820px] text-left">
-        <thead class="bg-brand-500 text-white">
+        <thead class="select-none bg-brand-500 text-white font-poppins">
           <tr>
-            <th class="px-5 py-3 text-sm font-semibold">Dijalankan</th>
-            <th class="px-5 py-3 text-sm font-semibold">Trigger</th>
-            <th class="px-5 py-3 text-sm font-semibold">Status</th>
-            <th class="px-5 py-3 text-right text-sm font-semibold">Baris</th>
-            <th class="px-5 py-3 text-sm font-semibold">Sync Terakhir</th>
-            <th class="px-5 py-3 text-sm font-semibold">Pesan Error</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Dijalankan</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Trigger</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Status</th>
+            <th class="px-5 py-3.5 text-right text-sm font-semibold">Baris</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Sync Terakhir</th>
+            <th class="px-5 py-3.5 text-sm font-semibold">Pesan Error</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">

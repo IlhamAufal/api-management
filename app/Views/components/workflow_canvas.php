@@ -7,6 +7,12 @@
  *
  * Each node: key, column, variant (source|process|table|sink), icon, title,
  * subtitle, status, meta[] ([label,value]). Purely visual - no editing.
+ *
+ * Wires are animated according to the status of the destination node (edge.to):
+ *   OK                      -> green, fast flowing dashes
+ *   STALE                   -> amber, slow flowing dashes
+ *   MISSING_TABLE/CONN_ERROR-> red, static dotted
+ *   anything else           -> grey, static dotted
  */
 $workflow = $workflow ?? ['nodes' => [], 'edges' => []];
 $workflowJson = json_encode(
@@ -48,7 +54,8 @@ $workflowJson = json_encode(
   .wf-canvas .drawflow-node.selected { background: transparent; }
   .wf-canvas .drawflow-node.selected .wf-card {
     border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), 0 6px 16px rgba(16, 24, 40, 0.08);
+    box-shadow: none;
+    outline: 2px solid rgba(59, 130, 246, 0.5);
   }
 
   /* Connector dots (visual only - not interactive) */
@@ -72,6 +79,41 @@ $workflowJson = json_encode(
   .wf-canvas .connection .main-path { stroke: #94a3b8; stroke-width: 2.5px; pointer-events: none; }
   .dark .wf-canvas .connection .main-path { stroke: #475569; }
 
+  /* Animated wires */
+  @keyframes wf-flow {
+    to { stroke-dashoffset: -28; }
+  }
+
+  .wf-canvas .connection .main-path { transition: stroke 0.2s ease; }
+
+  .wf-canvas .connection.wf-wire--ok .main-path {
+    stroke: #22c55e;
+    stroke-dasharray: 8 6;
+    animation: wf-flow 0.9s linear infinite;
+  }
+  .wf-canvas .connection.wf-wire--stale .main-path {
+    stroke: #f59e0b;
+    stroke-dasharray: 8 6;
+    animation: wf-flow 2.4s linear infinite;
+  }
+  .wf-canvas .connection.wf-wire--error .main-path {
+    stroke: #ef4444;
+    stroke-dasharray: 3 7;      /* putus-putus, tanpa animasi */
+  }
+  .wf-canvas .connection.wf-wire--idle .main-path {
+    stroke: #94a3b8;
+    stroke-dasharray: 2 6;
+  }
+  .dark .wf-canvas .connection.wf-wire--ok .main-path    { stroke: #4ade80; }
+  .dark .wf-canvas .connection.wf-wire--stale .main-path { stroke: #fbbf24; }
+  .dark .wf-canvas .connection.wf-wire--error .main-path { stroke: #f87171; }
+  .dark .wf-canvas .connection.wf-wire--idle .main-path  { stroke: #475569; }
+
+  /* Hormati preferensi pengguna yang mematikan animasi */
+  @media (prefers-reduced-motion: reduce) {
+    .wf-canvas .connection .main-path { animation: none !important; }
+  }
+
   /* Node card */
   .wf-card {
     width: 232px;
@@ -79,16 +121,18 @@ $workflowJson = json_encode(
     border-left: 4px solid #94a3b8;
     border-radius: 0.75rem;
     background: #ffffff;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 6px 16px rgba(16, 24, 40, 0.06);
+    box-shadow: none;
     padding: 12px 14px;
     font-family: inherit;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .dark .wf-card {
     background: #111827;
     border-color: #1f2937;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    box-shadow: none;
   }
-  .wf-card__head { display: flex; align-items: center; gap: 10px; }
+  .wf-card__head { display: flex; align-items: center; gap: 10px; user-select: none; }
   .wf-card__icon {
     display: inline-flex;
     align-items: center;
@@ -99,6 +143,8 @@ $workflowJson = json_encode(
     border-radius: 9px;
     background: #f1f5f9;
     color: #475569;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .dark .wf-card__icon { background: #1f2937; color: #cbd5e1; }
   .wf-card__icon svg { width: 18px; height: 18px; }
@@ -111,6 +157,9 @@ $workflowJson = json_encode(
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
   }
   .dark .wf-card__title { color: #f1f5f9; }
   .wf-card__sub {
@@ -121,8 +170,11 @@ $workflowJson = json_encode(
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
   }
-  .wf-card__status { margin-top: 10px; }
+  .wf-card__status { margin-top: 10px; user-select: none; -webkit-user-select: none; }
   .wf-badge {
     display: inline-flex;
     align-items: center;
@@ -131,6 +183,8 @@ $workflowJson = json_encode(
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 600;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .wf-badge::before {
     content: "";
@@ -155,11 +209,14 @@ $workflowJson = json_encode(
     gap: 8px;
     font-size: 11px;
   }
-  .wf-card__meta span { color: #94a3b8; }
+  .wf-card__meta span { color: #94a3b8; user-select: none; -webkit-user-select: none; }
   .wf-card__meta b {
     color: #475569;
     font-weight: 600;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
   }
   .dark .wf-card__meta b { color: #cbd5e1; }
 
@@ -263,8 +320,9 @@ $workflowJson = json_encode(
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#22c55e"></span>OK</span>
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#f59e0b"></span>STALE</span>
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#ef4444"></span>MISSING_TABLE / CONN_ERROR</span>
-    <span class="wf-legend__item">    <span class="wf-legend__dot" style="background:#94a3b8"></span>NEVER_SYNCED / PENDING_CONFIG / belum dicek</span>
+    <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#94a3b8"></span>NEVER_SYNCED / PENDING_CONFIG / belum dicek</span>
     <span class="wf-legend__item"><span class="wf-legend__dot" style="background:#3b82f6"></span>Source</span>
+    <span class="wf-legend__item">Garis mengalir = data segar · lambat = STALE · putus statis = bermasalah/belum dicek</span>
   </div>
 </section>
 
@@ -305,22 +363,22 @@ $workflowJson = json_encode(
     var info = STATUS[node.status] || STATUS.UNKNOWN;
     var badge = node.status === 'SOURCE'
       ? ''
-      : '<div class="wf-card__status"><span class="wf-badge ' + info.cls + '">' + esc(info.label) + '</span></div>';
+      : '<div class="wf-card__status select-none"><span class="wf-badge ' + info.cls + '">' + esc(info.label) + '</span></div>';
 
     var metas = '';
     if (Array.isArray(node.meta) && node.meta.length) {
-      metas = '<div class="wf-card__metas">' + node.meta.map(function (m) {
-        return '<div class="wf-card__meta"><span>' + esc(m.label) + '</span><b>' + esc(m.value) + '</b></div>';
+      metas = '<div class="wf-card__metas select-none">' + node.meta.map(function (m) {
+        return '<div class="wf-card__meta"><span class="select-none">' + esc(m.label) + '</span><b class="select-text"><span class="inline-block select-text">' + esc(m.value) + '</span></b></div>';
       }).join('') + '</div>';
     }
 
     return '' +
-      '<div class="wf-card">' +
-        '<div class="wf-card__head">' +
-          '<span class="wf-card__icon">' + (ICONS[node.icon] || '') + '</span>' +
+      '<div class="wf-card select-none">' +
+        '<div class="wf-card__head select-none">' +
+          '<span class="wf-card__icon select-none">' + (ICONS[node.icon] || '') + '</span>' +
           '<div class="wf-card__titles">' +
-            '<div class="wf-card__title">' + esc(node.title) + '</div>' +
-            '<div class="wf-card__sub">' + esc(node.subtitle) + '</div>' +
+            '<div class="wf-card__title"><span class="inline-block select-text">' + esc(node.title) + '</span></div>' +
+            '<div class="wf-card__sub"><span class="inline-block select-text">' + esc(node.subtitle) + '</span></div>' +
           '</div>' +
         '</div>' +
         badge +
@@ -335,6 +393,13 @@ $workflowJson = json_encode(
   editor.zoom_min = 0.3;
   editor.zoom_value = 0.1;
   editor.start();
+
+  // Mencegah Drawflow membajak mousedown/drag saat pengguna mengklik/menyeleksi string client-side
+  mount.addEventListener('mousedown', function (e) {
+    if (e.target.closest('.select-text, .wf-card__title, .wf-card__sub, .wf-card__meta b')) {
+      e.stopPropagation();
+    }
+  });
 
   // Keep it a visual guide: cards can be dragged, but block structural edits
   // (deleting nodes/connections or rewiring). Layout resets on page reload.
@@ -380,10 +445,30 @@ $workflowJson = json_encode(
     (nodesByColumn[col] = nodesByColumn[col] || []).push(node);
   });
 
-  // --- Create connections ---
+  // --- Create connections (animated according to destination node status) ---
+  var nodeByKey = {};
+  workflow.nodes.forEach(function (n) { nodeByKey[n.key] = n; });
+
+  function wireClass(status) {
+    switch ((status || '').toUpperCase()) {
+      case 'OK':            return 'wf-wire--ok';
+      case 'STALE':         return 'wf-wire--stale';
+      case 'MISSING_TABLE':
+      case 'CONN_ERROR':    return 'wf-wire--error';
+      default:              return 'wf-wire--idle';
+    }
+  }
+
   (workflow.edges || []).forEach(function (edge) {
-    if (idMap[edge.from] && idMap[edge.to]) {
-      editor.addConnection(idMap[edge.from], idMap[edge.to], 'output_1', 'input_1');
+    if (!idMap[edge.from] || !idMap[edge.to]) { return; }
+    editor.addConnection(idMap[edge.from], idMap[edge.to], 'output_1', 'input_1');
+
+    var el = mount.querySelector(
+      '.connection.node_in_node-' + idMap[edge.to] +
+      '.node_out_node-' + idMap[edge.from]
+    );
+    if (el) {
+      el.classList.add(wireClass((nodeByKey[edge.to] || {}).status));
     }
   });
 

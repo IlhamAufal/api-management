@@ -77,14 +77,14 @@
             </div>
           <?php else: ?>
             <table class="w-full min-w-[720px] text-left">
-              <thead class="bg-brand-500 text-white">
+              <thead class="select-none bg-brand-500 text-white font-poppins">
                 <tr>
-                  <th class="px-5 py-3 text-sm font-semibold">Tabel</th>
-                  <th class="px-5 py-3 text-sm font-semibold">Status</th>
-                  <th class="px-5 py-3 text-sm font-semibold">Umur Data</th>
-                  <th class="px-5 py-3 text-sm font-semibold">Keterangan</th>
-                  <th class="px-5 py-3 text-right text-sm font-semibold">Baris</th>
-                  <th class="px-5 py-3 text-right text-sm font-semibold">Aksi</th>
+                  <th class="px-5 py-3.5 text-sm font-semibold">Tabel</th>
+                  <th class="px-5 py-3.5 text-sm font-semibold">Status</th>
+                  <th class="px-5 py-3.5 text-sm font-semibold">Umur Data</th>
+                  <th class="px-5 py-3.5 text-sm font-semibold">Keterangan</th>
+                  <th class="px-5 py-3.5 text-right text-sm font-semibold">Baris</th>
+                  <th class="px-5 py-3.5 text-right text-sm font-semibold">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -92,38 +92,38 @@
                   <?php $table = $row['table']; $snapshot = $row['snapshot']; ?>
                   <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
                     <td class="px-5 py-4">
-                      <p class="font-semibold text-gray-800 dark:text-white/90"><?= esc($table['label']) ?></p>
-                      <code class="mt-0.5 block text-xs text-gray-400"><?= esc($table['table_name']) ?></code>
-                      <code class="block text-[10px] text-gray-400">sync: <?= esc($table['sync_column']) ?> · stale &gt; <?= (int) $table['stale_after_minutes'] ?>m</code>
+                      <p class="font-semibold text-gray-800 dark:text-white/90"><span class="inline-block select-text"><?= esc($table['label']) ?></span></p>
+                      <code class="mt-0.5 inline-block select-text text-xs text-gray-400"><?= esc($table['table_name']) ?></code>
+                      <code class="block text-[10px] text-gray-400 select-none">sync: <span class="inline-block select-text"><?= esc($table['sync_column']) ?></span> · stale &gt; <?= (int) $table['stale_after_minutes'] ?>m</code>
                     </td>
-                    <td class="px-5 py-4">
+                    <td class="px-5 py-4 select-none">
                       <?= view('components/badge_status', ['status' => $row['status']]) ?>
                       <?php if (! empty($snapshot['error_message'])): ?>
-                        <span class="mt-1 block max-w-[260px] truncate text-[10px] text-error-500" title="<?= esc($snapshot['error_message'], 'attr') ?>"><?= esc($snapshot['error_message']) ?></span>
+                        <span class="mt-1 block max-w-[260px] truncate select-text text-[10px] text-error-500" title="<?= esc($snapshot['error_message'], 'attr') ?>"><?= esc($snapshot['error_message']) ?></span>
                       <?php endif; ?>
                     </td>
                     <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">
                       <?php if ($snapshot === null): ?>
-                        <span class="text-gray-400">belum dicek</span>
+                        <span class="text-gray-400 select-none">belum dicek</span>
                       <?php else: ?>
-                        <span>data terakhir: <?= esc($relative($snapshot['last_synced_at'])) ?></span>
+                        <span>data terakhir: <span class="inline-block select-text"><?= esc($relative($snapshot['last_synced_at'])) ?></span></span>
+                      <?php endif; ?>
+                    </td>
+                    <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">
+                      <?php if ($snapshot === null): ?>
+                        <span class="text-gray-400 select-none">-</span>
+                      <?php else: ?>
+                        <span class="block font-sm">dicek <span class="inline-block select-text"><?= esc($relative($snapshot['checked_at'])) ?></span></span>
                         <?php if ($snapshot['last_synced_at'] !== null): ?>
-                          <span class="mt-0.5 block text-[10px] text-gray-400"><?= esc($snapshot['last_synced_at']) ?></span>
+                          <span class="mt-0.5 block select-text text-[10px] text-gray-400"><?= esc($snapshot['last_synced_at']) ?></span>
                         <?php endif; ?>
                       <?php endif; ?>
                     </td>
-                    <td class="px-5 py-4 text-sm text-gray-600 dark:text-gray-300">
-                      <?php if ($snapshot === null): ?>
-                        <span class="text-gray-400">-</span>
-                      <?php else: ?>
-                        <span class="block font-sm">dicek <?= esc($relative($snapshot['checked_at'])) ?></span>
-                      <?php endif; ?>
+                    <td class="px-5 py-4 text-right font-mono text-sm text-gray-700 dark:text-gray-200 select-none">
+                      <span class="inline-block select-text"><?= ($snapshot !== null && $snapshot['row_count'] !== null) ? number_format((int) $snapshot['row_count']) : '—' ?></span>
                     </td>
-                    <td class="px-5 py-4 text-right font-mono text-sm text-gray-700 dark:text-gray-200">
-                      <?= ($snapshot !== null && $snapshot['row_count'] !== null) ? number_format((int) $snapshot['row_count']) : '—' ?>
-                    </td>
-                    <td class="px-5 py-4">
-                      <div class="flex items-center justify-end gap-2">
+                    <td class="px-5 py-4 select-none">
+                      <div class="flex select-none items-center justify-end gap-2">
                         <a href="<?= base_url('monitoring/history/' . (int) $table['id'] . '/' . (int) $activeSource['id']) ?>" title="Lihat riwayat check" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-500 dark:border-gray-700 dark:text-gray-400 dark:hover:border-brand-700 dark:hover:bg-brand-500/10 dark:hover:text-brand-400">
                           <i class="fa-solid fa-clock-rotate-left text-xs" aria-hidden="true"></i>
                         </a>

@@ -19,7 +19,7 @@ $dotStyles = [
     'PENDING'        => 'bg-gray-400',
 ];
 ?>
-<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold <?= $styles[$status] ?? $styles['PENDING'] ?>">
+<span class="inline-flex select-none items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold <?= $styles[$status] ?? $styles['PENDING'] ?>">
   <span class="h-1.5 w-1.5 rounded-full <?= $dotStyles[$status] ?? $dotStyles['PENDING'] ?>"></span>
   <?= esc($status) ?>
 </span>
