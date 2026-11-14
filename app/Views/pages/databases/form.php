@@ -10,18 +10,18 @@ $value = static function (string $field, string $default = '') use ($source, $ol
     return (string) ($source[$field] ?? $default);
 };
 ?>
-<div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6" x-data="{ showTutorial: false }">
+<div class="mx-auto max-w-(--breakpoint-2xl) p-4 sm:p-6 lg:p-8" x-data="{ showTutorial: false }">
   <?= view('components/breadcrumb', ['items' => [
       ['label' => 'Home', 'href' => base_url('/')],
       ['label' => 'Databases', 'href' => base_url('databases')],
       ['label' => $isEdit ? 'Edit Database' : 'Tambah Database'],
   ]]) ?>
 
-  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div class="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p class="text-sm font-semibold tracking-wide text-brand-500">MD-Bridge</p>
-      <h1 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"><?= $isEdit ? 'Edit Database' : 'Tambah Database' ?></h1>
-      <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">Isi kode database (source) dan labelnya. Kredensial koneksi tidak diisi di form ini.</p>
+      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">MD-Bridge</p>
+      <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100"><?= $isEdit ? 'Edit Database' : 'Tambah Database' ?></h1>
+      <p class="mt-1 max-w-3xl text-sm text-gray-600 dark:text-gray-400">Isi kode database (source) dan labelnya; kredensial koneksi dikonfigurasi pada environment</p>
     </div>
     <div class="flex shrink-0 flex-wrap items-center gap-3">
       <?php if (! empty($tutorial)): ?>
@@ -37,8 +37,8 @@ $value = static function (string $field, string $default = '') use ($source, $ol
         </button>
       <?php endif; ?>
 
-      <a href="<?= $cancelUrl ?>" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">
-        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+      <a href="<?= $cancelUrl ?>" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800">
+        <i class="fa-solid fa-arrow-left text-xs" aria-hidden="true"></i>
         Kembali
       </a>
     </div>
@@ -76,9 +76,8 @@ $value = static function (string $field, string $default = '') use ($source, $ol
     </style>
   <?php endif; ?>
 
-  <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-    <form method="post" action="<?= esc($formAction) ?>" class="p-5 md:p-6">
-      <?= csrf_field() ?>
+  <section class="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-xs dark:border-gray-800 dark:bg-gray-900/60">
+    <form method="post" action="<?= esc($formAction) ?>" class="p-5 sm:p-6">
       <input type="hidden" name="return_to" value="<?= $isEdit ? 'edit/' . (int) $source['id'] : 'new' ?>" />
 
       <?php if (! empty($errors)): ?>
@@ -106,18 +105,18 @@ $value = static function (string $field, string $default = '') use ($source, $ol
       <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <div>
           <label for="code" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Kode Database <span class="text-error-500">*</span></label>
-          <input type="text" id="code" name="code" value="<?= esc($value('code')) ?>" required maxlength="50" placeholder="zona_erp" <?= $isEdit ? 'readonly' : '' ?> pattern="[a-z][a-z0-9_]*" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90 <?= $isEdit ? 'cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-white/[0.02] dark:text-gray-400' : '' ?>" />
+          <input type="text" id="code" name="code" value="<?= esc($value('code')) ?>" required maxlength="50" placeholder="zona_erp" <?= $isEdit ? 'readonly' : '' ?> pattern="[a-z][a-z0-9_]*" class="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-100 <?= $isEdit ? 'cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-gray-800/30 dark:text-gray-400' : '' ?>" />
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"><?= $isEdit ? 'Kode tidak bisa diubah setelah dibuat (dipakai nama connection group).' : 'Huruf kecil, angka, dan underscore — contoh: npd, sap, zona_erp.' ?></p>
         </div>
 
         <div>
           <label for="label" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Label <span class="text-error-500">*</span></label>
-          <input type="text" id="label" name="label" value="<?= esc($value('label')) ?>" required maxlength="100" placeholder="Zona ERP" class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90" />
+          <input type="text" id="label" name="label" value="<?= esc($value('label')) ?>" required maxlength="100" placeholder="Zona ERP" class="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-100" />
         </div>
 
         <div>
           <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Aktif</span>
-          <label for="is_active" class="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-800 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-transparent dark:text-white/90">
+          <label for="is_active" class="flex h-9 cursor-pointer items-center gap-2.5 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 transition-colors focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200">
             <input type="checkbox" id="is_active" name="is_active" value="1" <?= $value('is_active', '1') === '1' ? 'checked' : '' ?> class="peer sr-only" />
             <span class="toggle-track" aria-hidden="true"></span>
             Ikut check berikutnya
@@ -128,15 +127,15 @@ $value = static function (string $field, string $default = '') use ($source, $ol
       </div>
 
       <div class="mt-6 flex flex-wrap items-center gap-3">
-        <button type="submit" formaction="<?= base_url('databases/test') ?>" formmethod="post" title="Uji koneksi sesuai kode yang diisi — tanpa menyimpan" class="inline-flex items-center justify-center gap-2 rounded-lg border border-warning-300 bg-warning-50 px-5 py-2.5 text-sm font-semibold text-warning-700 transition hover:bg-warning-100 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-400 dark:hover:bg-warning-500/20">
-          <i class="fa-solid fa-plug" aria-hidden="true"></i>
+        <button type="submit" formaction="<?= base_url('databases/test') ?>" formmethod="post" title="Uji koneksi sesuai kode yang diisi — tanpa menyimpan" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-warning-300 bg-warning-50 px-4 text-sm font-medium text-warning-800 transition-colors hover:bg-warning-100 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-300 dark:hover:bg-warning-500/20">
+          <i class="fa-solid fa-plug text-xs" aria-hidden="true"></i>
           Uji Koneksi
         </button>
-        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600">
-          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        <button type="submit" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition-colors duration-150 hover:bg-brand-600 focus-visible:outline-2 focus-visible:outline-brand-500">
+          <i class="fa-solid fa-floppy-disk text-xs" aria-hidden="true"></i>
           <?= $isEdit ? 'Simpan Perubahan' : 'Daftarkan Database' ?>
         </button>
-        <a href="<?= $cancelUrl ?>" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]">Batal</a>
+        <a href="<?= $cancelUrl ?>" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800">Batal</a>
       </div>
     </form>
   </section>

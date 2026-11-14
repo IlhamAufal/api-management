@@ -80,3 +80,4 @@ composer.phar
 api_management.sql
 .agents
 .freebuff
+.playwright-cli

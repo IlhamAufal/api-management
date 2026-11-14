@@ -129,6 +129,28 @@ class Database extends Config
         'port'     => 3306,
     ];
 
+
+public $kite_ci4 = [
+    'DSN'      => '',
+    'hostname' => '10.42.2.32',
+    'username' => 'root',
+    'password' => '',
+    'database' => 'yp_kite',
+    'DBDriver' => 'MySQLi',
+    'DBPrefix' => '',
+    'pConnect' => false,
+    'DBDebug'  => (ENVIRONMENT !== 'production'),
+    'charset'  => 'utf8',
+    'DBCollat' => 'utf8_general_ci',
+    'swapPre'  => '',
+    'encrypt'  => false,
+    'compress' => false,
+    'strictOn' => false,
+    'failover' => [],
+    'port'     => 3306,
+];
+
+
     public function __construct()
     {
         parent::__construct();

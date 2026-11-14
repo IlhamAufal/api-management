@@ -9,17 +9,7 @@ $styles = [
     'PENDING_CONFIG' => 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
     'PENDING'        => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 ];
-$dotStyles = [
-    'OK'             => 'bg-success-500',
-    'STALE'          => 'bg-warning-500',
-    'NEVER_SYNCED'   => 'bg-gray-400',
-    'MISSING_TABLE'  => 'bg-error-400',
-    'CONN_ERROR'     => 'bg-error-500 animate-pulse',
-    'PENDING_CONFIG' => 'bg-gray-400',
-    'PENDING'        => 'bg-gray-400',
-];
 ?>
-<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold <?= $styles[$status] ?? $styles['PENDING'] ?>">
-  <span class="h-1.5 w-1.5 rounded-full <?= $dotStyles[$status] ?? $dotStyles['PENDING'] ?>"></span>
+<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold <?= $styles[$status] ?? $styles['PENDING'] ?>">
   <?= esc($status) ?>
 </span>

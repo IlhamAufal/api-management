@@ -657,6 +657,14 @@
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
+/* Menu membuka ke atas (dipakai di footer tabel yang ber-overflow hidden). */
+.cs-select--up .cs-select__menu {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
 /* Transisi Alpine (x-transition) — kelas Tailwind scale-98/translate tidak
  * ikut ter-compile, jadi dipakai kelas scoped .cs-tr*. */
 .cs-tr { transition: opacity 0.15s ease, transform 0.15s ease; }

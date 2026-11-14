@@ -15,6 +15,9 @@ use Config\Services;
  */
 class WatchedTableRegistry extends BaseController
 {
+    /** Pilihan jumlah baris per halaman; yang pertama = default. */
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
     private WatchedTableModel $watchedModel;
     private SourceIntrospector $introspector;
     /** @var \CodeIgniter\Validation\Validation */
@@ -58,10 +61,28 @@ class WatchedTableRegistry extends BaseController
             }
         }
 
+        // Pagination di memori: baris sudah diekspansi per source, jadi
+        // total tidak bisa dihitung lewat query. perPage dibatasi whitelist.
+        $perPage = (int) $this->request->getGet('per_page');
+        if (! in_array($perPage, self::PER_PAGE_OPTIONS, true)) {
+            $perPage = self::PER_PAGE_OPTIONS[0];
+        }
+
+        $total      = count($rows);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $pageNum    = min(max(1, (int) $this->request->getGet('page')), $totalPages);
+
         return view('pages/watched_tables/index', [
             'title'      => 'Watched Tables | MD-Bridge',
             'page'       => 'watched_tables',
-            'tables'     => $rows,
+            'tables'     => array_slice($rows, ($pageNum - 1) * $perPage, $perPage),
+            'pagination' => [
+                'total'      => $total,
+                'page'       => $pageNum,
+                'perPage'    => $perPage,
+                'totalPages' => $totalPages,
+                'options'    => self::PER_PAGE_OPTIONS,
+            ],
             'flashSuccess' => session()->getFlashdata('flash_success'),
             'flashError'   => session()->getFlashdata('flash_error'),
         ]);
@@ -86,6 +107,12 @@ class WatchedTableRegistry extends BaseController
 
     public function store()
     {
+        // Mode bulk: form tambah mengirim rows[n][field] (tombol "Tambah Kolom").
+        $rows = $this->request->getPost('rows');
+        if (is_array($rows)) {
+            return $this->storeBulk($rows);
+        }
+
         $post = $this->normalizedPost();
 
         if (! $this->runValidation($post)) {
@@ -120,6 +147,90 @@ class WatchedTableRegistry extends BaseController
 
         return redirect()->to(base_url('watched-tables'))
             ->with('flash_success', 'Tabel "' . $post['label'] . '" berhasil didaftarkan.');
+    }
+
+    /**
+     * Registrasi banyak tabel sekaligus. All-or-nothing: bila ada satu baris
+     * tidak valid, tidak ada yang disimpan dan semua error dilaporkan
+     * dengan prefix nomor baris.
+     */
+    private function storeBulk(array $rawRows)
+    {
+        $rows = [];
+        foreach ($rawRows as $raw) {
+            if (is_array($raw)) {
+                $rows[] = $this->normalizeRow($raw);
+            }
+        }
+
+        if ($rows === []) {
+            return redirect()->to(base_url('watched-tables/new'))
+                ->withInput()
+                ->with('validation_errors', ['rows' => 'Minimal satu tabel harus diisi.']);
+        }
+
+        $errors = [];
+        $seen   = [];
+
+        foreach ($rows as $i => $row) {
+            $prefix = 'Baris ' . ($i + 1) . ': ';
+
+            if (! $this->runValidation($row)) {
+                foreach ($this->formValidator->getErrors() as $field => $message) {
+                    $errors["rows.{$i}.{$field}"] = $prefix . $message;
+                }
+                continue;
+            }
+
+            if (isset($seen[$row['table_name']])) {
+                $errors["rows.{$i}.table_name"] = $prefix . 'Tabel "' . $row['table_name'] . '" dipilih lebih dari sekali pada form ini.';
+                continue;
+            }
+            $seen[$row['table_name']] = true;
+
+            $introspectionError = $this->introspector->validateRegistration($row['table_name'], $row['sync_column']);
+            if ($introspectionError !== null) {
+                $errors["rows.{$i}.table_name"] = $prefix . $introspectionError;
+            }
+        }
+
+        if ($errors !== []) {
+            return redirect()->to(base_url('watched-tables/new'))
+                ->withInput()
+                ->with('validation_errors', $errors);
+        }
+
+        $ids = [];
+        $this->watchedModel->db->transStart();
+        foreach ($rows as $row) {
+            $ids[] = (int) $this->watchedModel->insert($row);
+        }
+        $this->watchedModel->db->transComplete();
+
+        if (! $this->watchedModel->db->transStatus()) {
+            return redirect()->to(base_url('watched-tables/new'))
+                ->withInput()
+                ->with('validation_errors', ['rows' => 'Gagal menyimpan data; tidak ada tabel yang didaftarkan.']);
+        }
+
+        // Check sekali per tabel aktif supaya langsung muncul di dashboard.
+        foreach ($ids as $insertedId) {
+            $table = $this->watchedModel->find($insertedId);
+            if ($table !== null && (int) $table['is_active'] === 1) {
+                try {
+                    Services::freshnessChecker()->checkTable($table);
+                } catch (\Throwable $e) {
+                    // lihat store()
+                }
+            }
+        }
+
+        $count = count($ids);
+
+        return redirect()->to(base_url('watched-tables'))
+            ->with('flash_success', $count === 1
+                ? 'Tabel "' . $rows[0]['label'] . '" berhasil didaftarkan.'
+                : $count . ' tabel berhasil didaftarkan.');
     }
 
     public function update($id)
@@ -270,12 +381,23 @@ class WatchedTableRegistry extends BaseController
 
     private function normalizedPost(): array
     {
+        return $this->normalizeRow([
+            'table_name'          => $this->request->getPost('table_name'),
+            'label'               => $this->request->getPost('label'),
+            'sync_column'         => $this->request->getPost('sync_column'),
+            'stale_after_minutes' => $this->request->getPost('stale_after_minutes'),
+            'is_active'           => $this->request->getPost('is_active'),
+        ]);
+    }
+
+    private function normalizeRow(array $raw): array
+    {
         return [
-            'table_name'          => strtolower(trim((string) $this->request->getPost('table_name'))),
-            'label'               => trim((string) $this->request->getPost('label')),
-            'sync_column'         => trim((string) $this->request->getPost('sync_column')),
-            'stale_after_minutes' => trim((string) $this->request->getPost('stale_after_minutes')),
-            'is_active'           => $this->request->getPost('is_active') !== null ? '1' : '0',
+            'table_name'          => strtolower(trim((string) ($raw['table_name'] ?? ''))),
+            'label'               => trim((string) ($raw['label'] ?? '')),
+            'sync_column'         => trim((string) ($raw['sync_column'] ?? '')),
+            'stale_after_minutes' => trim((string) ($raw['stale_after_minutes'] ?? '')),
+            'is_active'           => isset($raw['is_active']) ? '1' : '0',
         ];
     }
 

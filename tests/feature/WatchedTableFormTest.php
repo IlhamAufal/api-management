@@ -56,6 +56,35 @@ final class WatchedTableFormTest extends CIUnitTestCase
         $this->assertBodySee('npd', $result);
     }
 
+    public function testIndexPaginatesTenRowsByDefault()
+    {
+        for ($i = 1; $i <= 12; $i++) {
+            $this->insertWatchedTable(['table_name' => 'pg_tbl_' . $i, 'label' => 'Pg Label ' . $i]);
+        }
+
+        $page1 = $this->withSession($this->authSession())->get('watched-tables');
+        $page1->assertOK();
+        $this->assertBodySee('Pg Label 10', $page1);
+        $this->assertBodyNotSee('Pg Label 11', $page1);
+        $this->assertBodySee('per_page', $page1);
+
+        $page2 = $this->withSession($this->authSession())->get('watched-tables?page=2');
+        $this->assertBodySee('Pg Label 11', $page2);
+        $this->assertBodyNotSee('Pg Label 10', $page2);
+    }
+
+    public function testIndexHonorsPerPageAndIgnoresInvalidValue()
+    {
+        for ($i = 1; $i <= 12; $i++) {
+            $this->insertWatchedTable(['table_name' => 'pg_tbl_' . $i, 'label' => 'Pg Label ' . $i]);
+        }
+
+        $all = $this->withSession($this->authSession())->get('watched-tables?per_page=25');
+        $this->assertBodySee('Pg Label 12', $all);
+
+        $bad = $this->withSession($this->authSession())->get('watched-tables?per_page=7');
+        $this->assertBodyNotSee('Pg Label 11', $bad);
+    }
     public function testCreateFormShowsSourceTablesInDropdown()
     {
         $result = $this->withSession($this->authSession())->get('watched-tables/new');
@@ -210,6 +239,61 @@ final class WatchedTableFormTest extends CIUnitTestCase
         $this->assertArrayHasKey('stale_after_minutes', $errors);
     }
 
+    // ------------------------------------------------------------------
+    // Store: bulk (tombol "Tambah Kolom")
+    // ------------------------------------------------------------------
+
+    public function testCreateFormHasAddColumnButton()
+    {
+        $result = $this->withSession($this->authSession())->get('watched-tables/new');
+
+        $result->assertOK();
+        $this->assertBodySee('Tambah Kolom', $result);
+        $this->assertBodySee('rows[0][table_name]', $result);
+    }
+
+    public function testStoreBulkCreatesAllRows()
+    {
+        $this->fixtureDb->query('CREATE TABLE ' . $this->ident('fx_orders_b') . ' (id INTEGER PRIMARY KEY AUTOINCREMENT, synced_at TEXT NULL)');
+
+        $result = $this->withSession($this->authSession())->post('watched-tables', [
+            'rows' => [
+                ['table_name' => 'fx_orders', 'label' => 'FX Orders', 'sync_column' => 'synced_at', 'stale_after_minutes' => '1440', 'is_active' => '1'],
+                ['table_name' => 'fx_orders_b', 'label' => 'FX B', 'sync_column' => 'synced_at', 'stale_after_minutes' => '60'],
+            ],
+        ]);
+
+        $result->assertRedirect();
+        $result->assertSessionHas('flash_success');
+        $this->assertSame(2, $this->countRows('watched_tables'));
+    }
+
+    public function testStoreBulkRejectsDuplicateTableInSameBatch()
+    {
+        $row = ['table_name' => 'fx_orders', 'label' => 'FX', 'sync_column' => 'synced_at', 'stale_after_minutes' => '1440', 'is_active' => '1'];
+
+        $result = $this->withSession($this->authSession())->post('watched-tables', [
+            'rows' => [$row, $row],
+        ]);
+
+        $result->assertRedirect();
+        $this->assertSame(0, $this->countRows('watched_tables'));
+        $this->assertNotEmpty($this->flashErrors());
+    }
+
+    public function testStoreBulkIsAllOrNothingWhenOneRowInvalid()
+    {
+        $result = $this->withSession($this->authSession())->post('watched-tables', [
+            'rows' => [
+                ['table_name' => 'fx_orders', 'label' => 'FX', 'sync_column' => 'synced_at', 'stale_after_minutes' => '1440', 'is_active' => '1'],
+                ['table_name' => 'fx_tidak_ada', 'label' => 'Ngawur', 'sync_column' => 'synced_at', 'stale_after_minutes' => '1440', 'is_active' => '1'],
+            ],
+        ]);
+
+        $result->assertRedirect();
+        $this->assertSame(0, $this->countRows('watched_tables'));
+        $this->assertNotEmpty($this->flashErrors());
+    }
     // ------------------------------------------------------------------
     // Toggle / delete / AJAX columns
     // ------------------------------------------------------------------
