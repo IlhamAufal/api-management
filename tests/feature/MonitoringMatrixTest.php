@@ -181,6 +181,78 @@ final class MonitoringMatrixTest extends CIUnitTestCase
         );
     }
 
+    public function testSourcePageHidesTablesMissingInThatSource()
+    {
+        $npd    = $this->sourceId('npd');
+        $sap    = $this->sourceId('sap');
+        $tableId = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        $this->insertSnapshot(['watched_table_id' => $tableId, 'source_id' => $npd, 'status' => 'OK']);
+        $this->insertSnapshot([
+            'watched_table_id' => $tableId,
+            'source_id'        => $sap,
+            'status'           => 'MISSING_TABLE',
+            'row_count'        => null,
+            'last_synced_at'   => null,
+        ]);
+
+        $sapPage = $this->withSession($this->authSession())->get('monitoring/source/sap');
+        $sapPage->assertOK();
+        $this->assertBodyNotSee('Pesanan FX', $sapPage);
+        $this->assertBodySee('disembunyikan', $sapPage);
+
+        $npdPage = $this->withSession($this->authSession())->get('monitoring/source/npd');
+        $this->assertBodySee('Pesanan FX', $npdPage);
+    }
+
+    public function testAllTabListsEverySourceWithSourceColumn()
+    {
+        $npd     = $this->sourceId('npd');
+        $sap     = $this->sourceId('sap');
+        $tableId = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        $this->insertSnapshot(['watched_table_id' => $tableId, 'source_id' => $npd, 'status' => 'OK']);
+        $this->insertSnapshot(['watched_table_id' => $tableId, 'source_id' => $sap, 'status' => 'STALE']);
+
+        $result = $this->withSession($this->authSession())->get('monitoring/all');
+
+        $result->assertOK();
+        $this->assertBodySee('monitoring/all', $result);
+        $this->assertBodySee('NPD (RDS)', $result);
+        $this->assertBodySee('SAP', $result);
+        $this->assertStatusBadge($result, 'OK');
+        $this->assertStatusBadge($result, 'STALE');
+    }
+
+    public function testFilterBySearchAndStatus()
+    {
+        $npd = $this->sourceId('npd');
+        $a   = $this->insertWatchedTable(['table_name' => 'fx_orders', 'label' => 'Pesanan FX']);
+        $b   = $this->insertWatchedTable(['table_name' => 'fx_lain', 'label' => 'Tabel Lain']);
+        $this->insertSnapshot(['watched_table_id' => $a, 'source_id' => $npd, 'status' => 'OK']);
+        $this->insertSnapshot(['watched_table_id' => $b, 'source_id' => $npd, 'status' => 'STALE']);
+
+        $bySearch = $this->withSession($this->authSession())->get('monitoring/source/npd?q=pesanan');
+        $this->assertBodySee('Pesanan FX', $bySearch);
+        $this->assertBodyNotSee('Tabel Lain', $bySearch);
+
+        $byStatus = $this->withSession($this->authSession())->get('monitoring/source/npd?status=STALE');
+        $this->assertBodySee('Tabel Lain', $byStatus);
+        $this->assertBodyNotSee('Pesanan FX', $byStatus);
+    }
+
+    public function testAllTabFilterBySource()
+    {
+        $npd = $this->sourceId('npd');
+        $sap = $this->sourceId('sap');
+        $id  = $this->insertWatchedTable(['label' => 'Pesanan FX']);
+        $this->insertSnapshot(['watched_table_id' => $id, 'source_id' => $npd, 'status' => 'OK']);
+        $this->insertSnapshot(['watched_table_id' => $id, 'source_id' => $sap, 'status' => 'STALE']);
+
+        $result = $this->withSession($this->authSession())->get('monitoring/all?source=sap');
+        $result->assertOK();
+        $this->assertBodySee('monitoring/history/' . $id . '/' . $sap, $result);
+        $this->assertBodyNotSee('monitoring/history/' . $id . '/' . $npd, $result);
+    }
+
     public function testUnknownSourceCodeReturns404()
     {
         $this->expectException(\CodeIgniter\Exceptions\PageNotFoundException::class);

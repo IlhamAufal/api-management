@@ -17,6 +17,16 @@ use Config\Services;
  */
 class MonitoringMatrix extends BaseController
 {
+    /** Severity status: makin besar makin buruk (urutan dropdown filter juga). */
+    private const STATUS_RANK = [
+        'CONN_ERROR'     => 6,
+        'PENDING_CONFIG' => 5,
+        'MISSING_TABLE'  => 4,
+        'NEVER_SYNCED'   => 3,
+        'STALE'          => 2,
+        'OK'             => 1,
+    ];
+
     private WatchedTableModel $watchedModel;
     private SourceModel $sourceModel;
     private TableSnapshotModel $snapshotModel;
@@ -60,59 +70,127 @@ class MonitoringMatrix extends BaseController
     }
 
     /**
-     * Render halaman per-source: tab bar semua source aktif + daftar
-     * semua watched table aktif pada source terpilih (worst-first).
+     * Tab "ALL": semua pasangan (watched table, source) dalam satu daftar
+     * dengan kolom Source. URL tetap `monitoring/all`.
+     */
+    public function all()
+    {
+        return $this->renderSource(null, $this->sourceModel->getActiveSources(), true);
+    }
+
+    /**
+     * Render halaman monitoring: tab bar (ALL + semua source aktif) dan
+     * daftar pasangan (tabel, source) worst-first.
+     *
+     * Tabel dengan snapshot MISSING_TABLE pada suatu source berarti tabel
+     * itu tidak ada di source tersebut, jadi tidak ditampilkan di tab source
+     * itu (supaya isi tiap tab hanya tabel milik source-nya). Jumlah yang
+     * disembunyikan dilaporkan lewat `hiddenCount`.
      *
      * @param array<string,mixed>|null       $source
      * @param array<int,array<string,mixed>> $sources
      */
-    private function renderSource(?array $source, array $sources)
+    private function renderSource(?array $source, array $sources, bool $all = false)
     {
         $tables = $this->watchedModel->getActiveTables();
 
+        // Source yang ditampilkan: semua (tab ALL) atau satu (tab source).
+        $scope = $all ? $sources : ($source !== null ? [$source] : []);
+
         $rows    = [];
         $summary = [];
-        if ($source !== null) {
-            // Snapshot untuk source ini saja (lookup by watched_table_id).
+        $hidden  = 0;
+
+        if ($scope !== []) {
+            $scopeIds  = array_map(static fn (array $s): int => (int) $s['id'], $scope);
             $snapshots = [];
-            foreach ($this->snapshotModel->where('source_id', (int) $source['id'])->findAll() as $snapshot) {
-                $snapshots[(int) $snapshot['watched_table_id']] = $snapshot;
+            foreach ($this->snapshotModel->whereIn('source_id', $scopeIds)->findAll() as $snapshot) {
+                $snapshots[$snapshot['watched_table_id'] . ':' . $snapshot['source_id']] = $snapshot;
             }
 
-            foreach ($tables as $table) {
-                $snapshot = $snapshots[(int) $table['id']] ?? null;
-                $status   = $snapshot['status'] ?? 'NEVER_SYNCED';
-                $rows[] = [
-                    'table'    => $table,
-                    'snapshot' => $snapshot,
-                    'status'   => $status,
-                ];
-                $summary[$status] = ($summary[$status] ?? 0) + 1;
+            foreach ($scope as $scopeSource) {
+                foreach ($tables as $table) {
+                    $snapshot = $snapshots[$table['id'] . ':' . $scopeSource['id']] ?? null;
+                    $status   = $snapshot['status'] ?? 'NEVER_SYNCED';
+
+                    if ($status === 'MISSING_TABLE') {
+                        $hidden++;
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'table'    => $table,
+                        'source'   => $scopeSource,
+                        'snapshot' => $snapshot,
+                        'status'   => $status,
+                    ];
+                    $summary[$status] = ($summary[$status] ?? 0) + 1;
+                }
             }
 
-            // Urut worst-first lalu label (plan amendmen bagian 0).
+            // Urut worst-first lalu label, lalu source (plan amendmen bagian 0).
             usort($rows, function (array $a, array $b): int {
                 $cmp = $this->statusRank($b['status']) <=> $this->statusRank($a['status']);
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
+
+                $cmp = strcasecmp((string) $a['table']['label'], (string) $b['table']['label']);
 
                 return $cmp !== 0
                     ? $cmp
-                    : strcasecmp((string) $a['table']['label'], (string) $b['table']['label']);
+                    : strcasecmp((string) $a['source']['code'], (string) $b['source']['code']);
             });
         }
 
+        // Filter via query string (GET): q = cari label/nama tabel,
+        // status = salah satu status, source = code (hanya tab ALL).
+        // Ringkasan status tetap dihitung dari baris sebelum difilter.
+        $statusOptions = array_keys(self::STATUS_RANK);
+        $q             = trim((string) $this->request->getGet('q'));
+        $status        = (string) $this->request->getGet('status');
+        $status        = in_array($status, $statusOptions, true) ? $status : '';
+        $sourceFilter  = $all ? (string) $this->request->getGet('source') : '';
+        $totalRows     = count($rows);
+
+        if ($q !== '' || $status !== '' || $sourceFilter !== '') {
+            $needle = mb_strtolower($q);
+            $rows   = array_values(array_filter($rows, static function (array $row) use ($needle, $status, $sourceFilter): bool {
+                if ($status !== '' && $row['status'] !== $status) {
+                    return false;
+                }
+                if ($sourceFilter !== '' && (string) $row['source']['code'] !== $sourceFilter) {
+                    return false;
+                }
+                if ($needle === '') {
+                    return true;
+                }
+
+                return str_contains(mb_strtolower((string) $row['table']['label']), $needle)
+                    || str_contains(mb_strtolower((string) $row['table']['table_name']), $needle);
+            }));
+        }
+
         return view('pages/monitoring_source/index', [
+            'filters'       => ['q' => $q, 'status' => $status, 'source' => $sourceFilter],
+            'statusOptions' => $statusOptions,
+            'totalRows'     => $totalRows,
+            'filterAction'  => $all
+                ? base_url('monitoring/all')
+                : base_url('monitoring/source/' . ($source['code'] ?? '')),
             'title'        => 'Monitoring | MD-Bridge',
             'page'         => 'monitoring',
             'sources'      => $sources,
             'activeSource' => $source,
+            'isAll'        => $all,
             'rows'         => $rows,
             'summary'      => $summary,
+            'hiddenCount'  => $hidden,
             'relative'     => static fn (?string $dt): string => RelativeTime::format($dt),
             'flashSuccess' => session()->getFlashdata('flash_success'),
             'flashError'   => session()->getFlashdata('flash_error'),
         ]);
     }
-
     /**
      * "Check All": satu request memeriksa seluruh sel aktif.
      * Mengembalikan JSON untuk permintaan AJAX (tombol navbar),
@@ -453,16 +531,7 @@ class MonitoringMatrix extends BaseController
      */
     private function statusRank(string $status): int
     {
-        $rank = [
-            'CONN_ERROR'     => 6,
-            'PENDING_CONFIG' => 5,
-            'MISSING_TABLE'  => 4,
-            'NEVER_SYNCED'   => 3,
-            'STALE'          => 2,
-            'OK'             => 1,
-        ];
-
-        return $rank[$status] ?? 0;
+        return self::STATUS_RANK[$status] ?? 0;
     }
 
     /**

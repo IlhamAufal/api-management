@@ -150,6 +150,51 @@ public $kite_ci4 = [
     'port'     => 3306,
 ];
 
+public $orion = [
+    'DSN'      => '',
+    'hostname' => '10.42.2.32',
+    'username' => 'root',
+    'password' => '',
+    'database' => 'yp_orion_monitor',
+    'DBDriver' => 'MySQLi',
+    'DBPrefix' => '',
+    'pConnect' => false,
+    'DBDebug'  => (ENVIRONMENT !== 'production'),
+    'charset'  => 'utf8mb4',
+    'DBCollat' => 'utf8mb4_general_ci',
+    'swapPre'  => '',
+    'encrypt'  => false,
+    'compress' => false,
+    'strictOn' => false,
+    'failover' => [],
+    'port'     => 3306,
+];
+
+    /**
+     * yp_orion_monitor (receiver DB for yp_orion sync reports).
+     * Credentials come from .env (database.yp_orion_monitor.*).
+     *
+     * @var array
+     */
+    public $yp_orion_monitor = [
+        'DSN'      => '',
+        'hostname' => '',
+        'username' => '',
+        'password' => '',
+        'database' => 'yp_orion_monitor',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => (ENVIRONMENT !== 'production'),
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
+    ];
 
     public function __construct()
     {

@@ -78,6 +78,7 @@ $value = static function (string $field, string $default = '') use ($source, $ol
 
   <section class="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-xs dark:border-gray-800 dark:bg-gray-900/60">
     <form method="post" action="<?= esc($formAction) ?>" class="p-5 sm:p-6">
+      <?= csrf_field() ?>
       <input type="hidden" name="return_to" value="<?= $isEdit ? 'edit/' . (int) $source['id'] : 'new' ?>" />
 
       <?php if (! empty($errors)): ?>

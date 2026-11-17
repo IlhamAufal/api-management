@@ -81,3 +81,4 @@ api_management.sql
 .agents
 .freebuff
 .playwright-cli
+app/Config/Database.php

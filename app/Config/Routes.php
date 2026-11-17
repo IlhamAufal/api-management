@@ -41,6 +41,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Monitoring per-source (sub-tab navigation; pengganti matrix lama).
     $routes->group('monitoring', static function ($routes) {
         $routes->get('', 'MonitoringMatrix::index');
+        $routes->get('all', 'MonitoringMatrix::all');
         $routes->get('workflow', 'MonitoringMatrix::workflow');
         $routes->get('workflow/source/(:segment)', 'MonitoringMatrix::workflowSource/$1');
         $routes->get('source/(:segment)', 'MonitoringMatrix::source/$1');
